@@ -1,0 +1,133 @@
+# -*- coding: utf-8 -*-
+
+"""Including this module sets up an operation-result handling system. You can
+  then register actions to perform for a given context, operation and result:
+
+      config.add_engine_transition(
+          IFoo,          # context
+          'o.VALIDATE',  # operation
+          'r.OK',        # result
+          'a.SET_VALID', # action
+      )
+
+  And dispatch to them using `torque.engine.result(context, 'o.VALIDATE', 'r.OK')`.
+"""
+
+__all__ = [
+    'AddEngineTransition',
+    'TransitionHandler',
+]
+
+import logging
+logger = logging.getLogger(__name__)
+
+from pyramid import exceptions
+from pyramid.config import predicates
+
+from . import util
+
+class JSONPredicate(predicates.RequestParamPredicate):
+    """Like the ``@view_config(..., request_params=...)`` but for
+      top level ``request.json`` key value pairs.
+    """
+
+    def __call__(self, context, request):
+        try:
+            data = request.json
+        except ValueError:
+            return False
+        for k, v in self.reqs:
+            actual = data.get(k)
+            if actual is None:
+                return False
+            if v is not None and actual != v:
+                return False
+        return True
+
+class TransitionHandler(object):
+    """Handle results by setting the ``work_state`` of the ``request.context``
+      and dispatching a work engine update to notify about the change.
+    """
+
+    def __init__(self, action):
+        self.action = action
+
+    def __call__(self, request):
+        """Use the ``request.perform_action`` method to perform the state change
+          action and then return a dict with a list of the updates dispatched.
+        """
+
+        # Unpack.
+        action = self.action
+        context = request.context
+        event = request.activity_event # XXX do we need / get this?
+
+        # Perform.
+        _, __, dispatched = request.state_changer.perform(context, action, event)
+        return {'dispatched': dispatched}
+
+class AddEngineTransition(object):
+    """Configuration directive that uses the Pyramid ``view_config``
+      machinery to perform a registered ``action`` for a given ``context``,
+      ``operation`` and ``result``.
+    """
+
+    def __init__(self, **kwargs):
+        self.handler_cls = kwargs.get('handler_cls', TransitionHandler)
+        self.get_interfaces = kwargs.get('get_interfaces', util.get_interfaces)
+        self.request_params = kwargs.get('request_params', util.as_request_params)
+
+    def __call__(self, config, context, operation, result, action):
+        """Register a `results` handler for the given predicates."""
+
+        # Prepare a function to call to validate that the action was
+        # registered for this context.
+        validate = lambda: self.validate(config.registry, context, action)
+
+        # Register it for this context.
+        key = 'fabbed.apps.engine.transition'
+        discriminator = (key, context, operation, result)
+        config.action(discriminator, validate)
+
+        # Instantiate a handler that knows the action to perform.
+        handler = self.handler_cls(action)
+
+        # Build the match params.
+        params = self.request_params(operation=operation, result=result)
+
+        # Register the handler for the context and params.
+        config.add_view(handler, context=context, renderer='json',
+                request_method='POST', json_param=params,
+                route_name='results')
+
+    def validate(self, registry, context, action):
+        """Make sure that there's a registered ``action`` for the ``context``."""
+
+        # Check the `registry.state_action_rules` to see whether this action
+        # has been configured for this context.
+        rules = registry.state_action_rules
+        for key in self.get_interfaces(context):
+            if rules.has_key(key):
+                parent = rules[key]
+                if parent.get(action, None):
+                    return True
+
+        # If not, raise a configuration error.
+        msg = (action, u'not registered for context', context)
+        raise exceptions.ConfigurationError(msg)
+
+class IncludeMe(object):
+    """Handle `/results...` and provide an ``add_state_transition`` directive."""
+
+    def __init__(self, **kwargs):
+        self.add_transition = kwargs.get('add_transition', AddEngineTransition())
+
+    def __call__(self, config):
+        """Expose route and provide directive."""
+
+        # Configure.
+        config.add_route('results', '/results/*traverse')
+        config.add_view_predicate('json_param', JSONPredicate)
+        config.add_directive('add_engine_transition', self.add_transition)
+
+includeme = IncludeMe().__call__

@@ -7,6 +7,8 @@
 * the activity event class has a relationship to a user table -- this needs
   to be patched onto the class post settings but pre basemodel config.commit
 
+* do we have to register the states?
+
 * replace the tree boilerplate with a "register_traversable_resource"
   directive that naturally handles traversal
 
@@ -17,3 +19,4 @@
   backwards compatibility
 
 * port the whole client and make sure the client is includable seperately
+
