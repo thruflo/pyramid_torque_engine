@@ -50,3 +50,45 @@ def get_interfaces(resource):
     else:
         ifaces = zope.interface.providedBy(resource).__sro__
     return ifaces
+
+def get_object_id(instance):
+    """Return ``u'tablename#ID'`` for ``instance``."""
+
+    return pack_object_id(instance.__tablename__, instance.id)
+
+def pack_object_id(tablename, target_id):
+    return u'{0}#{1}'.format(tablename, target_id)
+
+def unpack_object_id(object_id):
+    """Return ``(table_name, id)`` for ``object_id``::
+
+          >>> unpack_object_id(u'questions#1234')
+          (u'questions', 1234)
+          >>> unpack_object_id(u'questions#*')
+          (u'questions', None)
+
+    """
+
+    parts = object_id.split('#')
+    try:
+        parts[1] = int(parts[1])
+    except ValueError:
+        parts[1] = None
+    return tuple(parts)
+
+def get_unpacked_object_id(instance):
+    """Return ``(table_name, id)`` for ``instance``."""
+
+    oid = get_object_id(instance)
+    return unpack_object_id(oid)
+
+def pack_object_id(tablename, target_id):
+    return u'{0}#{1}'.format(tablename, target_id)
+
+def get_var(environ, keys, default=None):
+    """Try each of the keys in turn before falling back on the default."""
+
+    for key in keys:
+        if environ.has_key(key):
+            return environ.get(key)
+    return default

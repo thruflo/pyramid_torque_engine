@@ -27,10 +27,8 @@ setup(
     include_package_data = True,
     zip_safe = False,
     install_requires=[
-        'colander',
         'fysom',
         'pyramid_basemodel',
-        'pyramid_weblayer',
         'transaction',
         'zope.interface'
     ],

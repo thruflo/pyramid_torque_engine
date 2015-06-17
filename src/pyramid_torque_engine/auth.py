@@ -45,7 +45,7 @@ class ACLWrapper(object):
         ]
 
         # Allow API key authenticated requests all permissions.
-        api_key = settings.get('fabbed.apps.engine.api_key')
+        api_key = settings.get('engine.api_key')
         if api_key:
             rule = [sec.Allow, api_key, sec.ALL_PERMISSIONS]
             rules.insert(0, rule)

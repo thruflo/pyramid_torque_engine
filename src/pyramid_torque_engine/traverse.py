@@ -14,11 +14,16 @@ __all__ = [
 import logging
 logger = logging.getLogger(__name__)
 
-import colander
-
 from pyramid_basemodel import tree
 
 from . import auth
+
+def id_validator(node, value):
+    try:
+        assert int(value) > 1
+    except Exception:
+        msg = u'{0} is not a valid instance id.'.format(value)
+        raise ValueError(msg)
 
 class EngineRoot(tree.BaseContentRoot):
     """Lookup contexts by tablename and id and restrict access by api key."""
@@ -34,7 +39,7 @@ class EngineRoot(tree.BaseContentRoot):
 
         config = {
             'property_name': 'id',
-            'validator': colander.Range(min=1),
+            'validator': id_validator,
         }
         resources = NotImplemented # get from registry
         return {

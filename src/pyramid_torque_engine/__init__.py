@@ -1,1 +1,78 @@
-# This `__init__.py` file makes this directory a Python package.
+# -*- coding: utf-8 -*-
+
+"""Provides a ``includeme()`` pyramid configuration entry point."""
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+
+from pyramid import authorization
+from pyramid import security
+from pyramid.settings import asbool
+
+from . import auth
+from . import constants
+from . import util
+
+DEFAULTS = {
+    'engine.api_key': util.get_var(os.environ, constants.ENGINE_API_KEY_NAMES),
+}
+
+class IncludeMe(object):
+    """Configure the key parts of the work engine application for normal
+      usage -- note that this is not the full configuration required for
+      this software to work, just some partial setup that should be
+      common to all applications.
+
+      Notably, we don't configure the model, we don't local down HSTS and
+      we don't actually make a WSGI app. However, we do clobber auth and
+      expose an index route, so if that's not what an app needs, it should
+      craft its own configuration following this as a reference.
+
+      Also n.b.: that you don't need to include this if you just want a
+      `request.torque.dispatch` client -- in that case you can just
+      `config.include('torque_engine.client')`.
+    """
+
+    def __init__(self, **kwargs):
+        self.default_settings = kwargs.get('default_settings', DEFAULTS)
+        self.authn_policy = kwargs.get('authn_policy',
+                auth.APIKeyAuthenticationPolicy(constants.API_KEY_NAME))
+        self.authz_policy = kwargs.get('authz_policy',
+                authorization.ACLAuthorizationPolicy())
+
+    def __call__(self, config):
+        """Apply the default settings and auth policies, expose views
+          and provide configuration directives.
+        """
+
+        # Apply default settings.
+        settings = config.get_settings()
+        for key, value in self.default_settings.items():
+            settings.setdefault(key, value)
+
+        # Apply auth policies.
+        api_key = settings.get('engine.api_key')
+        should_authenticate = api_key is not None
+        if not should_authenticate:
+            config.set_default_permission(security.NO_PERMISSION_REQUIRED)
+        else:
+            config.set_authorization_policy(self.authz_policy)
+            config.set_authentication_policy(self.authn_policy)
+            config.set_default_permission('view')
+
+        # Expose the `/` index view.
+        config.add_route('index', '/')
+        config.scan('torque_engine.view')
+
+        # Expose the `/events` and `/results` views and provide the
+        # work engine configuration directives.
+        config.include('torque_engine.action')
+        config.include('torque_engine.subscribe')
+        config.include('torque_engine.transition')
+
+        # Provide the `request.torque` client API.
+        config.include('torque_engine.client')
+
+includeme = IncludeMe().__call__
