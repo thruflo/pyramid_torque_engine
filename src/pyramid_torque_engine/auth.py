@@ -72,14 +72,21 @@ class APIKeyAuthenticationPolicy(authentication.CallbackAuthenticationPolicy):
       ``request.headers['api_key']``.
     """
 
-    def __init__(self, header_key, **kwargs):
-        self.header_key = header_key
+    def __init__(self, header_keys, **kwargs):
+        if isinstance(header_keys, basestring):
+            header_keys = [header_keys]
+        self.header_keys = header_keys
         self.valid_key = kwargs.get('valid_key', VALID_API_KEY)
 
     def unauthenticated_userid(self, request):
         """The ``api_key`` value found within the ``request.headers``."""
 
-        api_key = request.headers.get(self.header_key, None)
+        api_key = None
+        for key in self.header_keys:
+            value = request.headers.get(key, None)
+            if value is not None:
+                api_key = value
+                break
         if api_key and self.valid_key.match(api_key):
             return api_key.decode('utf8')
 

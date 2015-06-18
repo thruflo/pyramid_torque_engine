@@ -38,7 +38,7 @@ class IncludeMe(object):
     def __init__(self, **kwargs):
         self.default_settings = kwargs.get('default_settings', DEFAULTS)
         self.authn_policy = kwargs.get('authn_policy',
-                auth.APIKeyAuthenticationPolicy(constants.API_KEY_NAME))
+                auth.APIKeyAuthenticationPolicy(constants.ENGINE_API_KEY_NAMES))
         self.authz_policy = kwargs.get('authz_policy',
                 authorization.ACLAuthorizationPolicy())
 
