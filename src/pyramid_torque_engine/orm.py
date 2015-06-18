@@ -15,7 +15,7 @@ import os
 
 from datetime import datetime
 
-from sqlalchemy import mapper
+from sqlalchemy import event
 from sqlalchemy import orm
 from sqlalchemy import schema
 from sqlalchemy import types
@@ -280,7 +280,7 @@ class WorkStatusMixin(object):
     def work_status(self):
         return self.get_work_status()
 
-@event.listens_for(mapper, 'before_configured', once=True)
+@event.listens_for(orm.mapper, 'before_configured', once=True)
 def sanity_check_user_patching(*args, **kwargs):
     """Sanity check that we have patched the user class before the
       mapper is configured.
