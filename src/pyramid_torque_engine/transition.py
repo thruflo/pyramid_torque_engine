@@ -117,7 +117,7 @@ class AddEngineTransition(object):
         raise exceptions.ConfigurationError(msg)
 
 class IncludeMe(object):
-    """Handle `/results...` and provide an ``add_state_transition`` directive."""
+    """Handle `/results...` and provide an ``add_engine_transition`` directive."""
 
     def __init__(self, **kwargs):
         self.add_transition = kwargs.get('add_transition', AddEngineTransition())

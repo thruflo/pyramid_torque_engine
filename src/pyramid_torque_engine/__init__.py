@@ -72,6 +72,10 @@ class IncludeMe(object):
         config.include('torque_engine.subscribe')
         config.include('torque_engine.transition')
 
+        # Provide the ``config.add_engine_resource`` directive to enable
+        # instance id conatiner based traversal for a given ORM class.
+        config.include('torque_engine.traverse')
+
         # Provide the `request.torque` client API.
         config.include('torque_engine.client')
 

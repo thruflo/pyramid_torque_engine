@@ -21,8 +21,3 @@ ENGINE_API_KEY_NAMES = (ENGINE_API_KEY, LEGACY_ENGINE_API_KEY)
 ENGINE_URL_NAMES = (ENGINE_URL, LEGACY_ENGINE_URL)
 WEBHOOKS_API_KEY_NAMES = (WEBHOOKS_API_KEY, LEGACY_ENGINE_API_KEY)
 WEBHOOKS_URL_NAMES = (WEBHOOKS_URL, LEGACY_ENGINE_URL)
-
-# ACTIONS = _util.as_namespaced_named_tuple
-# OPERATIONS = _util.as_namespaced_named_tuple
-# RESULTS = _util.as_namespaced_named_tuple
-# STATES = _util.as_namespaced_named_tuple

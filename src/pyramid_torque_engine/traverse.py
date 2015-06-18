@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""XXX in here what we want is to provide an ``EngineRoot`` as per
-  the previous tree module but one where the resource / container
-  mapping is got from the registry, which is populated by a
-  ``register_resource`` directive that this module provides.
-"""
+"""Provide a traversal root that looks up registered resources."""
 
 __all__ = [
     'EngineRoot',
-    # config.add_engine_resource
 ]
 
 import logging
@@ -17,16 +12,17 @@ logger = logging.getLogger(__name__)
 from pyramid_basemodel import tree
 
 from . import auth
+from . import util
 
-def id_validator(node, value):
-    try:
-        assert int(value) > 1
-    except Exception:
-        msg = u'{0} is not a valid instance id.'.format(value)
-        raise ValueError(msg)
+QUERY_SPEC = {
+    'property_name': 'id',
+    'validator': util.id_validator,
+}
 
 class EngineRoot(tree.BaseContentRoot):
-    """Lookup contexts by tablename and id and restrict access by api key."""
+    """Lookup registered resources by tablename and id, wrapping the result
+      in an ACL wrapper that restricts access by api key.
+    """
 
     @property
     def __acl__(self):
@@ -35,17 +31,34 @@ class EngineRoot(tree.BaseContentRoot):
 
     @property
     def mapping(self):
-        """Lookup instances of the selected model classes by tablename and id."""
+        registry = self.request.registry
+        return registry.engine_resource_mapping
 
-        config = {
-            'property_name': 'id',
-            'validator': id_validator,
-        }
-        resources = NotImplemented # get from registry
-        return {
-            cls.__tablename__: (cls, iface, config) for cls, iface in resources
-        }
+def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
+    """Populate the ``registry.engine_resource_mapping``."""
 
-def includeme(config):
-    # XXX provide register resource directive
-    raise NotImplementedError
+    # Compose.
+    if not query_spec:
+        query_spec = QUERY_SPEC
+
+    # Unpack.
+    registry = config.registry
+    tablename = resource_cls.__tablename__
+
+    # Make sure we have a mapping.
+    if not hasattr(registry, 'engine_resource_mapping'):
+        registry.engine_resource_mapping = {}
+
+    # Prepare a function to actually populate the mapping.
+    def register(mapping):
+        mapping = registry.engine_resource_mapping
+        mapping[tablename] = (resource_cls, container_iface, query_spec)
+
+    # Register the configuration action with a discriminator so that we
+    # don't register the same class twice.
+    config.action(tablename, register)
+
+def includeme(config, add_resource=None):
+    """Provide the ``config.add_engine_resource`` directive."""
+
+    config.add_directive('add_engine_resource', add_engine_resource)

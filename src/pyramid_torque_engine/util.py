@@ -35,6 +35,15 @@ def as_request_params(**kwargs):
 
     return tuple('{0}={1}'.format(k, v) for k, v in kwargs.items())
 
+def dicts_are_the_same(a, b):
+    """Compare two dicts, ``a`` and ``b`` and return ``True`` if they contain
+      exactly the same items.
+
+      Ref: http://stackoverflow.com/a/17095033
+    """
+
+    return not len(set(a.items()) ^ set(b.items()))
+
 def get_interfaces(resource):
     """Return a list, most specific first, of the classes and interfaces
       provided or implemented by the resource (depending on whether its
@@ -55,6 +64,13 @@ def get_object_id(instance):
     """Return ``u'tablename#ID'`` for ``instance``."""
 
     return pack_object_id(instance.__tablename__, instance.id)
+
+def id_validator(node, value):
+    try:
+        assert int(value) > 1
+    except Exception:
+        msg = u'{0} is not a valid instance id.'.format(value)
+        raise ValueError(msg)
 
 def pack_object_id(tablename, target_id):
     return u'{0}#{1}'.format(tablename, target_id)

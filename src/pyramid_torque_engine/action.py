@@ -208,7 +208,7 @@ class AddEngineAction(object):
         registry.state_action_machines[context] = machine
 
 class IncludeMe(object):
-    """Setup the action registry and provide the `register_action` directive."""
+    """Setup the action registry and provide the `add_engine_action` directive."""
 
     def __init__(self, **kwargs):
         self.add_action = kwargs.get('add_action', AddEngineAction())

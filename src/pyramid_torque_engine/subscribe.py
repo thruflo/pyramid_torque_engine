@@ -146,7 +146,7 @@ class GetActivityEvent(object):
 
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an
-      ``add_state_change_event_subscriber`` directive.
+      ``add_engine_subscriber`` directive.
     """
 
     def __init__(self, **kwargs):
