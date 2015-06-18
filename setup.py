@@ -28,6 +28,7 @@ setup(
     zip_safe = False,
     install_requires=[
         'fysom',
+        'ntorque',
         'pyramid_basemodel',
         'transaction',
         'zope.interface'
