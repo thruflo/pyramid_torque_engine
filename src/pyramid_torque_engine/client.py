@@ -113,7 +113,7 @@ class HookDispatcher(object):
         if not headers.has_key('Content-Type'):
             headers['Content-Type'] = 'application/json; utf-8'
             if data is not None and not isinstance(data, basestring):
-                data = render.json_dumps(data)
+                data = render.json_dumps(request, data)
 
         # Dispatch.
         url = self.join_path(webhooks_url, path)
@@ -195,7 +195,7 @@ class WorkEngineClient(object):
         if not headers.has_key('Content-Type'):
             headers['Content-Type'] = 'application/json; utf-8'
             if data is not None and not isinstance(data, basestring):
-                data = render.json_dumps(data)
+                data = render.json_dumps(request, data)
 
         # Dispatch.
         url = self.join_path(engine_url, path)

@@ -44,7 +44,7 @@ class ActivityEventFactory(object):
         data = {
             'parent': parent.__json__(request=request),
         }
-        return json.loads(render.json_dumps(data))
+        return json.loads(render.json_dumps(request, data))
 
     def __call__(self, parent, user, type_=None, data=None, action=None):
         """Create and store an activity event."""
