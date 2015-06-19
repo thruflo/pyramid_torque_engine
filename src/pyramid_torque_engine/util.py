@@ -10,6 +10,53 @@ import inspect
 import urllib
 import zope.interface
 
+class DeclaredNamespacedNamedTuple(object):
+    """Instantiate one of these with a namespace. Call ``register`` to add
+      values and then access as normal attributes. I.e.:
+
+          >>> ACTIONS = DeclaredNamespacedNamedTuple(u'Action')
+          >>> ACTIONS.register([
+          ...     u'ACCEPT',
+          ...     u'DECLINE',
+          ... ])
+          >>> ACTIONS.ACCEPT
+          u'actions:ACCEPT'
+          >>> ACTIONS.FOO
+          Traceback ...
+          ...
+          NameError
+    """
+
+    def __init__(self, namespace, **kwargs):
+        self.finalised = False
+        self.values = []
+        self.namespace = namespace
+        self.as_tuple = kwargs.get('as_tuple', as_namespaced_named_tuple)
+        self.named_tuple = self.as_tuple(self.namespace, self.values)
+
+    def register(self, new_values, clear=False):
+        """Maintain a sorted, de-duplicated list of values and, after every
+          registration call, wrap them as a new namespaced named tuple.
+        """
+
+        if self.finalised:
+            msg = 'Can\'t register new {0} values after finalising.'
+            raise ValueError(msg.format(self.namespace))
+
+        current_values = [] if clear else self.values
+        self.values = sorted(list(set(current_values + new_values)))
+        self.named_tuple = self.as_tuple(self.namespace, self.values)
+
+    def finalise(self):
+        """Stop accepting new values."""
+
+        self.finalised = True
+
+    def __getattr__(self, name):
+        """Provide dot attribute access to the named tuple."""
+
+        return getattr(self.named_tuple, name)
+
 def as_namespaced_named_tuple(name, data):
     """Takes a name and either a dict or list of strings, uses the name
       to namespace the values and return as a named tuple::
