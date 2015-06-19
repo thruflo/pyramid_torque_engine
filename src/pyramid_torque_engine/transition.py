@@ -85,7 +85,7 @@ class AddEngineTransition(object):
         validate = lambda: self.validate(config.registry, context, action)
 
         # Register it for this context.
-        key = 'torque_engine.transition'
+        key = 'engine.transition'
         discriminator = (key, context, operation, result)
         config.action(discriminator, validate)
 

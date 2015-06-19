@@ -298,7 +298,7 @@ def includeme(config):
         settings.setdefault(key, value)
 
     # Get the user class.
-    user_cls = config.maybe_dotted(settings['torque_engine.user_class'])
+    user_cls = config.maybe_dotted(settings['engine.user_class'])
     user_id_col = '{0}.id'.format(user_cls.__tablename__)
     
     # Use it to patch the `ActivityEvent.user` relation.

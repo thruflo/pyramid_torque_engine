@@ -173,7 +173,7 @@ class AddEngineAction(object):
         # multiple times -- usually leading to different `to_state`s -- as
         # long as the from_states are unique.
         for state in from_states:
-            discriminator = ('torque_engine.action', context, action, state)
+            discriminator = ('engine.action', context, action, state)
             config.action(discriminator, lambda: self.register(registry, context))
 
         # And with that queued up, immediately store the from and two states

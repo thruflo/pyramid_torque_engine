@@ -32,7 +32,7 @@ class IncludeMe(object):
 
       Also n.b.: that you don't need to include this if you just want a
       `request.torque.dispatch` client -- in that case you can just
-      `config.include('torque_engine.client')`.
+      `config.include('pyramid_torque_engine.client')`.
     """
 
     def __init__(self, **kwargs):
@@ -62,21 +62,24 @@ class IncludeMe(object):
             config.set_authentication_policy(self.authn_policy)
             config.set_default_permission('view')
 
-        # Expose the `/` index view.
-        config.add_route('index', '/')
-        config.scan('torque_engine.view')
+        # Patch the user model.
+        config.include('pyramid_torque_engine.orm')
 
         # Expose the `/events` and `/results` views and provide the
         # work engine configuration directives.
-        config.include('torque_engine.action')
-        config.include('torque_engine.subscribe')
-        config.include('torque_engine.transition')
+        config.include('pyramid_torque_engine.action')
+        config.include('pyramid_torque_engine.subscribe')
+        config.include('pyramid_torque_engine.transition')
 
         # Provide the ``config.add_engine_resource`` directive to enable
         # instance id conatiner based traversal for a given ORM class.
-        config.include('torque_engine.traverse')
+        config.include('pyramid_torque_engine.traverse')
 
         # Provide the `request.torque` client API.
-        config.include('torque_engine.client')
+        config.include('pyramid_torque_engine.client')
+
+        # Expose the `/` index view.
+        config.add_route('index', '/')
+        config.scan('pyramid_torque_engine.view')
 
 includeme = IncludeMe().__call__

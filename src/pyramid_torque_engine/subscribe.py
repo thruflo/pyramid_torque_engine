@@ -33,19 +33,6 @@ import zope.interface
 
 from . import repo
 
-class operation_config(object):
-    """Decorator that gives a handler function an operation name."""
-
-    def __init__(self, operation):
-        self.op = operation
-
-    def __call__(self, wrapped, *a, **kw):
-        def func(*args):
-            expanded_args = args + tuple([self.op])
-            return wrapped(*expanded_args)
-        func.op = self.op
-        return func
-
 class StateChangeHandler(object):
     """Dispatch state changed events to registered subscribers."""
 
@@ -80,7 +67,7 @@ class ParamAwareSubscriber(object):
         self.param = param
         self.value = value
         self.handler = handler
-
+    
     def __call__(self, combined_args):
         """Validate that the request param matches and, if so, call the
           handler function.
@@ -104,19 +91,24 @@ class AddEngineSubscriber(object):
     def __init__(self, **kwargs):
         self.wrapper_cls = kwargs.get('wrapper_cls', ParamAwareSubscriber)
 
-    def __call__(self, config, context, namespaced_events, handler):
+    def __call__(self, config, context, events, operation, handler):
         """Subscribe a handler for each event."""
 
+        # Extend the handler's args with the operation.
+        def op_handler(*args):
+            expanded_args = args + tuple([operation])
+            return handler(*expanded_args)
+
         # Make sure we have a list.
-        if not hasattr(namespaced_events, '__iter__'):
-            namespaced_events = (namespaced_events,)
+        if not hasattr(events, '__iter__'):
+            events = (events,)
 
         # For each event, add a subscriber.
-        for value in namespaced_events:
+        for value in events:
             # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
             param_name = value.split(':')[0]
             # Add a request param aware subscriber.
-            subscriber = self.wrapper_cls(param_name, value, handler)
+            subscriber = self.wrapper_cls(param_name, value, op_handler)
             config.add_subscriber(subscriber, context)
 
 class GetActivityEvent(object):
