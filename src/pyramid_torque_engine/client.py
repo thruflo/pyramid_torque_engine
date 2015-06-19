@@ -3,8 +3,11 @@
 """Provides `nTorque <http://ntorque.com>`_ task queue clients."""
 
 __all__ = [
-    'WebHookClient',
+    'DEFAULTS',
+    'HookDispatcher',
+    'WebTestDispatcher',
     'WorkEngineClient',
+    'get_torque_api',
 ]
 
 import logging
