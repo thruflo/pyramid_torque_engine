@@ -8,6 +8,7 @@ __all__ = [
     'WebTestDispatcher',
     'WorkEngineClient',
     'get_torque_api',
+    'includeme',
 ]
 
 import logging
