@@ -62,9 +62,6 @@ class IncludeMe(object):
             config.set_authentication_policy(self.authn_policy)
             config.set_default_permission('view')
 
-        # Patch the user model.
-        config.include('pyramid_torque_engine.orm')
-
         # Expose the `/events` and `/results` views and provide the
         # work engine configuration directives.
         config.include('pyramid_torque_engine.action')

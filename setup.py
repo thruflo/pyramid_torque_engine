@@ -30,6 +30,7 @@ setup(
         'fysom',
         'ntorque',
         'pyramid_basemodel',
+        'pyramid_simpleauth',
         'transaction',
         'zope.interface'
     ],

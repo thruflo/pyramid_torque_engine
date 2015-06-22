@@ -25,11 +25,7 @@ from sqlalchemy.ext import declarative
 from sqlalchemy.ext import hybrid
 
 import pyramid_basemodel as bm
-
-DEFAULTS = {
-    'engine.user_class': os.environ.get('ENGINE_USER_CLASS',
-            'pyramid_simpleauth.model.User'),
-}
+from pyramid_simpleauth import model as simpleauth_model
 
 # XXX It may be better to require the code that creates a work status to
 # explicitly set the value rather than relying on this abitrary default.
@@ -56,10 +52,15 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
     discriminator = schema.Column(types.Unicode(64))
     __mapper_args__ = {'polymorphic_on': discriminator}
 
-    # XXX note that we patch in a user_id column and user relation below in the
-    # includeme function -- so that the user class is configurable.
-    # user_id = schema.Column(types.Integer, schema.ForeignKey('....id'))
-    # user = orm.relationship(..., backref='activity_events')
+    # An event is normally -- but not always -- performed by a user.
+    user_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('auth_users.id'),
+    )
+    user = orm.relationship(
+        simpleauth_model.User,
+        backref='activity_events',
+    )
 
     # Can belong to a ``parent`` via a ``ActivityEventAssociation``.
     association_id = schema.Column(
@@ -279,37 +280,3 @@ class WorkStatusMixin(object):
     @property
     def work_status(self):
         return self.get_work_status()
-
-@event.listens_for(orm.mapper, 'before_configured', once=True)
-def sanity_check_user_patching(*args, **kwargs):
-    """Sanity check that we have patched the user class before the
-      mapper is configured.
-    """
-
-    assert hasattr(ActivityEvent, 'user_id')
-    assert hasattr(ActivityEvent, 'user')
-
-def includeme(config):
-    """Apply the defaults and patch the user class."""
-
-    # Apply default settings.
-    settings = config.get_settings()
-    for key, value in DEFAULTS.items():
-        settings.setdefault(key, value)
-
-    # Get the user class.
-    user_cls = config.maybe_dotted(settings['engine.user_class'])
-    user_id_col = '{0}.id'.format(user_cls.__tablename__)
-    
-    # Use it to patch the `ActivityEvent.user` relation.
-    ActivityEvent.user_id = schema.Column(
-        types.Integer,
-        schema.ForeignKey(user_id_col)
-    )
-    ActivityEvent.user = orm.relationship(
-        user_cls,
-        backref=orm.backref(
-            'activity_events',
-            single_parent=True
-        )
-    )
