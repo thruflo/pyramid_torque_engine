@@ -117,7 +117,7 @@ def get_object_id(instance):
 
 def id_validator(node, value):
     try:
-        assert int(value) > 1
+        assert int(value) > 0
     except Exception:
         msg = u'{0} is not a valid instance id.'.format(value)
         raise ValueError(msg)
