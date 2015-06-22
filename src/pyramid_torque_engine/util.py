@@ -15,10 +15,10 @@ class DeclaredNamespacedNamedTuple(object):
       values and then access as normal attributes. I.e.:
 
           >>> ACTIONS = DeclaredNamespacedNamedTuple(u'Action')
-          >>> ACTIONS.register([
+          >>> ACTIONS.register(
           ...     u'ACCEPT',
           ...     u'DECLINE',
-          ... ])
+          ... )
           >>> ACTIONS.ACCEPT
           u'actions:ACCEPT'
           >>> ACTIONS.FOO
@@ -34,17 +34,20 @@ class DeclaredNamespacedNamedTuple(object):
         self.as_tuple = kwargs.get('as_tuple', as_namespaced_named_tuple)
         self.named_tuple = self.as_tuple(self.namespace, self.values)
 
-    def register(self, new_values, clear=False):
+    def register(self, *new_values):
         """Maintain a sorted, de-duplicated list of values and, after every
           registration call, wrap them as a new namespaced named tuple.
         """
 
         if self.finalised:
-            msg = 'Can\'t register new {0} values after finalising.'
-            raise ValueError(msg.format(self.namespace))
+            has_new_value = False
+            for value in new_values:
+                if value not in self.values:
+                    msg = 'Can\'t register new {0} values after finalising.'
+                    raise ValueError(msg.format(self.namespace))
+            return
 
-        current_values = [] if clear else self.values
-        self.values = sorted(list(set(current_values + new_values)))
+        self.values = sorted(list(set(self.values + list(new_values))))
         self.named_tuple = self.as_tuple(self.namespace, self.values)
 
     def finalise(self):
