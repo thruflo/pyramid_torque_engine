@@ -67,6 +67,7 @@ class IncludeMe(object):
         config.include('pyramid_torque_engine.action')
         config.include('pyramid_torque_engine.subscribe')
         config.include('pyramid_torque_engine.transition')
+        config.include('pyramid_torque_engine.json_parser')
 
         # Provide the ``config.add_engine_resource`` directive to enable
         # instance id conatiner based traversal for a given ORM class.
