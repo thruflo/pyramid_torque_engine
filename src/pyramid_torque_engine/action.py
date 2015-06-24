@@ -160,7 +160,6 @@ class AddEngineAction(object):
           keyed by context and name and then using this data to populate a single
           fsm instance for each context.
         """
-
         # Unpack.
         registry = config.registry
 
@@ -179,7 +178,13 @@ class AddEngineAction(object):
         # And with that queued up, immediately store the from and two states
         # in an action_rules dict.
         value = (from_states, to_state)
-        registry.state_action_rules[context][action] = value
+        allowed = registry.state_action_rules[context].get(action)
+        if allowed is None:
+            registry.state_action_rules[context][action] = allowed = []
+
+        registry.state_action_rules[context][action].append(value)
+
+
 
     def register(self, registry, context):
         """Iff there isn't already a finite state machine registered for this
@@ -200,8 +205,9 @@ class AddEngineAction(object):
         # Coerce the stored rules to an fysom.Fysom events list.
         events = []
         for key, value in registry.state_action_rules[context].items():
-            event = dict(name=key.encode('utf-8'), src=value[0], dst=value[1])
-            events.append(event)
+            for allowed_states_tuple in value:
+                event = dict(name=key.encode('utf-8'), src=allowed_states_tuple[0], dst=allowed_states_tuple[1])
+                events.append(event)
 
         # Create and register the machine.
         machine = self.machine_cls(events=events)
