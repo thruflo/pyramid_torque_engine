@@ -58,7 +58,10 @@ class DeclaredNamespacedNamedTuple(object):
     def __getattr__(self, name):
         """Provide dot attribute access to the named tuple."""
 
+        if not hasattr(self.named_tuple, name):
+            raise NameError("name: %s not found in DeclaredNamespacedNamedTuple" % name)
         return getattr(self.named_tuple, name)
+
 
 def as_namespaced_named_tuple(name, data):
     """Takes a name and either a dict or list of strings, uses the name
