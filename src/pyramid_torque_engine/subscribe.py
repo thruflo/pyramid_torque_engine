@@ -103,6 +103,7 @@ class AddEngineSubscriber(object):
         if not hasattr(events, '__iter__'):
             events = (events,)
 
+
         # For each event, add a subscriber.
         for value in events:
             # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.

@@ -185,7 +185,6 @@ class AddEngineAction(object):
         registry.state_action_rules[context][action].append(value)
 
 
-
     def register(self, registry, context):
         """Iff there isn't already a finite state machine registered for this
           context then use the ``registry.state_action_rules`` to create and
