@@ -115,8 +115,10 @@ class AddEngineSubscriber(object):
         # Discriminated on everything -- this prevent unintentional
         # duplicated event subscription.
         key = 'engine.subscribe'
-        discriminator = [key, context, events, operation, handler, kw]
-        config.action(discriminator, subscribe)
+        discriminator = [key, context, operation, handler]
+        discriminator.extend(events)
+        discriminator.extend(kw.items())
+        config.action(tuple(discriminator), subscribe)
 
 class GetActivityEvent(object):
     """Request method to lookup ActivityEvent instance from the value in the
