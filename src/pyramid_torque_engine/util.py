@@ -20,11 +20,11 @@ class DeclaredNamespacedNamedTuple(object):
           ...     u'DECLINE',
           ... )
           >>> ACTIONS.ACCEPT
-          u'actions:ACCEPT'
-          >>> ACTIONS.FOO
-          Traceback ...
+          u'action:ACCEPT'
+          >>> ACTIONS.FOO #doctest:+ELLIPSIS
+          Traceback (most recent call last):
           ...
-          NameError
+          NameError: name: FOO not found in DeclaredNamespacedNamedTuple
     """
 
     def __init__(self, namespace, **kwargs):
