@@ -52,8 +52,6 @@ class IncludeMe(object):
         for key, value in self.default_settings.items():
             settings.setdefault(key, value)
 
-
-
         # Apply auth policies.
         api_key = settings.get('engine.api_key')
         should_authenticate = api_key is not None
@@ -69,8 +67,6 @@ class IncludeMe(object):
         config.include('pyramid_torque_engine.action')
         config.include('pyramid_torque_engine.subscribe')
         config.include('pyramid_torque_engine.transition')
-
-
 
         # Provide the ``config.add_engine_resource`` directive to enable
         # instance id conatiner based traversal for a given ORM class.
