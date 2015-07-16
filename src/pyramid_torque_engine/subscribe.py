@@ -91,7 +91,7 @@ class AddEngineSubscriber(object):
     def __init__(self, **kwargs):
         self.wrapper_cls = kwargs.get('wrapper_cls', ParamAwareSubscriber)
 
-    def __call__(self, config, context, events, operation, handler):
+    def __call__(self, config, context, events, operation, handler, **kw):
         """Subscribe a handler for each event."""
 
         # Extend the handler's args with the operation.
@@ -103,14 +103,20 @@ class AddEngineSubscriber(object):
         if not hasattr(events, '__iter__'):
             events = (events,)
 
-
         # For each event, add a subscriber.
-        for value in events:
-            # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
-            param_name = value.split(':')[0]
-            # Add a request param aware subscriber.
-            subscriber = self.wrapper_cls(param_name, value, op_handler)
-            config.add_subscriber(subscriber, context)
+        def subscribe():
+            for value in events:
+                # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
+                param_name = value.split(':')[0]
+                # Add a request param aware subscriber.
+                subscriber = self.wrapper_cls(param_name, value, op_handler)
+                config.add_subscriber(subscriber, context)
+
+        # Discriminated on everything -- this prevent unintentional
+        # duplicated event subscription.
+        key = 'engine.subscribe'
+        discriminator = [key, context, events, operation, handler, kw]
+        config.action(discriminator, subscribe)
 
 class GetActivityEvent(object):
     """Request method to lookup ActivityEvent instance from the value in the
