@@ -45,7 +45,7 @@ def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
 
     # Unpack.
     registry = config.registry
-    tablename = resource_cls.__tablename__
+    tablename = resource_cls.class_slug
 
     # Create the container class.
     class_name = '{0}Container'.format(resource_cls.__name__)
