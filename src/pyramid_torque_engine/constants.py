@@ -2,6 +2,8 @@
 
 from . import util as _util
 
+ASTERIX = '*'
+
 # Environment variable names.
 ENGINE_API_KEY = 'ENGINE_API_KEY'
 ENGINE_URL = 'ENGINE_URL'
