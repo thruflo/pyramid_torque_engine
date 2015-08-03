@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""High level integration / functional tests of the work engine configuration."""
+"""High level integration / functional tests of the work engine actions."""
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,9 +25,6 @@ class TestAllowedActions(boilerplate.AppTestCase):
 
         # Unpack.
         allow, on, after = unpack.directives(config)
-
-        # Traversal.
-        config.add_engine_resource(model.Model, model.IContainer)
 
         # Declare constants.
         s.register(
@@ -170,8 +167,6 @@ class TestConflictingActions(boilerplate.AppTestCase):
         """Setup the test configuration."""
 
         allow, on, after = unpack.directives(config)
-        config.add_engine_resource(model.Model, model.IContainer)
-
         s.register('CREATED', 'STARTED',)
         a.register('START',)
 
@@ -193,8 +188,6 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         """Setup the test configuration."""
 
         allow, on, after = unpack.directives(config)
-        config.add_engine_resource(model.Model, model.IContainer)
-
         s.register(
             'CREATED',
             'DRAFTED',
