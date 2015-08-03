@@ -129,7 +129,7 @@ class HookDispatcher(object):
             'data': data,
             'path': path,
             'response': response_data,
-            'response_headers': response_headers,
+            'response_headers': dict(response_headers.items()),
             'status': status,
             'url': url,
         }
@@ -211,7 +211,7 @@ class WorkEngineClient(object):
             'data': data,
             'path': path,
             'response': response_data,
-            'response_headers': response_headers,
+            'response_headers': dict(response_headers.items()),
             'status': status,
             'url': url,
         }
