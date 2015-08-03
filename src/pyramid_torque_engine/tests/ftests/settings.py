@@ -21,6 +21,4 @@ TEST_SETTINGS = {
     ),
     'torque.enable_ftesting_dispatch': True,
     'engine.url': 'http://localhost',
-    #'torque.url': 'http://localhost/ntorque',
-    #'webhooks.url': 'http://localhost/hooks',
 }
