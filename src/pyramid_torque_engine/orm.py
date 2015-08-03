@@ -64,7 +64,7 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
 
     # Can belong to a ``parent`` via a ``ActivityEventAssociation``.
     association_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('activity_event_associations.id'),
     )
     assocation = orm.relationship(ActivityEventAssociation, backref='activity_events')
@@ -139,28 +139,28 @@ class WorkStatus(bm.Base, bm.BaseMixin):
 
     # Store in `work_statuses`.
     __tablename__ = 'work_statuses'
-    
+
     # Must have a string status value
     value = schema.Column(
         types.Unicode(64),
-        default=DEFAULT_STATE, 
+        default=DEFAULT_STATE,
         nullable=False,
     )
 
     # Can belong to a ``parent`` via a ``WorkStatusAssociation``.
     association_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('work_status_associations.id'),
     )
     assocation = orm.relationship(WorkStatusAssociation, backref='work_statuses')
-    
+
     @property
     def parent(self):
         return self.assocation.parent
 
     # Can have an event (i.e.: the change to this state was triggered by).
     event_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('activity_events.id'),
     )
     event = orm.relationship(
