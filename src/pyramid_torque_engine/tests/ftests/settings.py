@@ -19,7 +19,8 @@ TEST_SETTINGS = {
         'HANDLE_EXCEPTIONS',
         False
     ),
-    'engine.url': 'http://localhost/engine',
-    'torque.url': 'http://localhost/ntorque',
-    'webhooks.url': 'http://localhost/hooks',
+    'torque.enable_ftesting_dispatch': True,
+    'engine.url': 'http://localhost',
+    #'torque.url': 'http://localhost/ntorque',
+    #'webhooks.url': 'http://localhost/hooks',
 }
