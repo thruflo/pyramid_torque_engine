@@ -75,9 +75,6 @@ class IncludeMe(object):
         # Provide the `request.torque` client API.
         config.include('pyramid_torque_engine.client')
 
-        # Finalise the constants after `config.commit()`.
-        config.include('pyramid_torque_engine.constants')
-
         # Expose the `/` index view.
         config.add_route('index', '/')
         config.scan('pyramid_torque_engine.view')
