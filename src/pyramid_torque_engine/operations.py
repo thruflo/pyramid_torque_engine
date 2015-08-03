@@ -48,8 +48,9 @@ class Dispatch(object):
         path = self.path if self.path else op.split(':')[-1].lower()
 
         # Build the generic data.
+        event_id = event.id if event else None
         data = {
-            'event_id': event.id,
+            'event_id': event_id,
             'operation': op,
         }
         instance_id_key = '{0}_id'.format(context.singular_class_slug)
