@@ -233,6 +233,12 @@ class WorkEngineClient(object):
         if event:
             data['event_id'] = event.id
 
+        logger.info((
+            'torque.engine.changed',
+            'context: ', context.class_slug, context.id,
+            'new state: ', state,
+        ))
+
         # Dispatch to the engine.
         return self.dispatch(path, data=data)
 
@@ -249,6 +255,12 @@ class WorkEngineClient(object):
         if event:
             data['event_id'] = event.id
 
+        logger.info((
+            'torque.engine.happended',
+            'context: ', context.class_slug, context.id,
+            'action: ', action,
+        ))
+
         # Dispatch to the engine.
         return self.dispatch(path, data=data)
 
@@ -264,6 +276,13 @@ class WorkEngineClient(object):
             'result': result,
             'event_id': event_id,
         }
+
+        logger.info((
+            'torque.engine.result',
+            'context: ', context.class_slug, context.id,
+            'operation: ', operation,
+            'result', result,
+        ))
 
         # Dispatch to the engine.
         return self.dispatch(path, data=data)

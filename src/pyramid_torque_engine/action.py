@@ -104,14 +104,6 @@ class StateChanger(object):
         # Either way, notify that the action has been performed.
         dispatched.append(engine.happened(context, action, event=event))
 
-        # Logging to be possible to follow events in production.
-        logger.info(
-          ('Pyramid Torque Engine State machine',
-              'context: ', context,
-              'action: ', action,
-              'current state: ', machine.current,
-              'next state: ', next_state))
-
         # Return all the available information.
         return next_state, has_changed, dispatched
 
