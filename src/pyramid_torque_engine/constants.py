@@ -4,6 +4,14 @@ from . import util as _util
 
 ASTERIX = '*'
 
+# Registration "constants" -- open to being populated during configuration,
+# closed afterwards in the `includeme` function below.
+ACTIONS = _util.DeclaredNamespacedNamedTuple(u'Action')
+OPERATIONS = _util.DeclaredNamespacedNamedTuple(u'Operation')
+RESULTS = _util.DeclaredNamespacedNamedTuple(u'Result')
+STATES = _util.DeclaredNamespacedNamedTuple(u'State')
+STATES.register('CREATED')
+
 # Environment variable names.
 ENGINE_API_KEY = 'ENGINE_API_KEY'
 ENGINE_URL = 'ENGINE_URL'
@@ -23,3 +31,19 @@ ENGINE_API_KEY_NAMES = (ENGINE_API_KEY, LEGACY_ENGINE_API_KEY)
 ENGINE_URL_NAMES = (ENGINE_URL, LEGACY_ENGINE_URL)
 WEBHOOKS_API_KEY_NAMES = (WEBHOOKS_API_KEY, LEGACY_ENGINE_API_KEY)
 WEBHOOKS_URL_NAMES = (WEBHOOKS_URL, LEGACY_ENGINE_URL)
+
+def includeme(config):
+    """Register a post-configuration-commit action to finalise the four
+      "constants" above so they can no longer have values registered.
+
+      This isn't strictly necessary but it helps make them a bit more like
+      read only constants -- they're only "fake" for a limited time window.
+    """
+
+    # Prepare a function to call on config.commit()
+    def finalise():
+        for item in (ACTIONS, OPERATIONS, RESULTS, STATES):
+            item.finalise()
+
+    # Register it for this context.
+    config.action('engine.finalise_constants', finalise)
