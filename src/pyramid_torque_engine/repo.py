@@ -47,7 +47,7 @@ class ActivityEventFactory(object):
             parent.activity_events = [instance]
         return self.save(instance)
 
-    def snapshot(self, parent, user):
+    def snapshot(self, parent, user=None):
         request = self.request
         data = {
             'parent': self.jsonify(parent),
