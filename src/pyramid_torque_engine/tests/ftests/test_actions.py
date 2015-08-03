@@ -26,6 +26,9 @@ class TestAllowedActions(boilerplate.AppTestCase):
         # Unpack.
         allow, on, after = unpack.directives(config)
 
+        # Traverse.
+        config.add_engine_resource(model.Model, model.IContainer)
+
         # Declare constants.
         s.register(
             'CREATED',
@@ -167,6 +170,7 @@ class TestConflictingActions(boilerplate.AppTestCase):
         """Setup the test configuration."""
 
         allow, on, after = unpack.directives(config)
+        config.add_engine_resource(model.Model, model.IContainer)
         s.register('CREATED', 'STARTED',)
         a.register('START',)
 
@@ -188,6 +192,8 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         """Setup the test configuration."""
 
         allow, on, after = unpack.directives(config)
+        config.add_engine_resource(model.Model, model.IContainer)
+        config.add_engine_resource(model.Foo, model.IFooContainer)
         s.register(
             'CREATED',
             'DRAFTED',

@@ -125,11 +125,12 @@ class HookDispatcher(object):
                 headers=headers, timeout=timeout)
 
         # Return.
+        headers_dict = dict(response_headers.items()) if response_headers else {}
         return {
             'data': data,
             'path': path,
             'response': response_data,
-            'response_headers': dict(response_headers.items()),
+            'response_headers': headers_dict,
             'status': status,
             'url': url,
         }
@@ -207,11 +208,12 @@ class WorkEngineClient(object):
                 headers=headers, timeout=timeout)
 
         # Return.
+        headers_dict = dict(response_headers.items()) if response_headers else {}
         return {
             'data': data,
             'path': path,
             'response': response_data,
-            'response_headers': dict(response_headers.items()),
+            'response_headers': headers_dict,
             'status': status,
             'url': url,
         }

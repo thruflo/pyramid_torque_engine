@@ -34,7 +34,7 @@ class EngineRoot(tree.BaseContentRoot):
     @property
     def mapping(self):
         registry = self.request.registry
-        return registry.engine_resource_mapping
+        return getattr(registry, 'engine_resource_mapping', {})
 
 def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
     """Populate the ``registry.engine_resource_mapping``."""

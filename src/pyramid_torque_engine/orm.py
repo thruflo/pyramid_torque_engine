@@ -373,6 +373,9 @@ class WorkStatusMixin(object):
     def set_work_status(self, value, event=None, model_cls=WorkStatus):
         """Append a new work status to the entry list."""
 
+        # Make sure we're not detatched o_O.
+        bm.Session.add(self)
+
         # Add a new entry to the status collection.
         status = model_cls(value=value, event=event)
         if self.work_statuses:
