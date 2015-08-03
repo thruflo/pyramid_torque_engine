@@ -23,6 +23,8 @@ from pyramid import config as pyramid_config
 from pyramid import registry
 from pyramid import testing
 
+from pyramid_torque_engine import action
+from pyramid_torque_engine import client
 from pyramid_torque_engine import traverse
 
 from . import settings
@@ -47,6 +49,24 @@ def make_wsgi_app(root_factory, includeme, registry=None, **settings):
 
     # Return a WSGI app.
     return config.make_wsgi_app()
+
+class StubRequest(object):
+    """Provide `request.registry` and `request.environ`."""
+
+    def __init__(self, registry_):
+        self.registry = registry_
+        self.environ = {'paste.testing': True,}
+        self.torque = client.get_torque_api(self)
+
+    @property
+    def state_changer(self):
+        return action.StateChanger(self)
+
+    def get_state_machine(self, *args, **kwargs):
+        return action.get_state_machine(self, *args, **kwargs)
+
+    def __repr__(self):
+        return 'StubRequest {0} {1}'.format(self.registry, self.environ)
 
 class TestAppFactory(object):
     """Callable utility that returns a testable WSGI app and manages db state."""
@@ -101,6 +121,7 @@ class TestAppFactory(object):
         self.configurator.registry.settings['webtest_app'] = test_app
 
         # Return the wrapped WSGI app.
+        test_app.registry = reg
         return test_app
 
 class AppTestCase(unittest.TestCase):
@@ -109,16 +130,37 @@ class AppTestCase(unittest.TestCase):
     """
 
     @classmethod
-    def includeme(config):
+    def includeall(cls, config):
+        """Setup the db and work engine and include the app config."""
+
+        # Boilerplate.
+        config.include('pyramid_basemodel')
+        config.include('pyramid_tm')
+        config.include('pyramid_torque_engine')
+
+        # App specifics.
+        cls.includeme(config)
+
+    @classmethod
+    def includeme(cls, config):
         raise NotImplementedError
 
     @classmethod
     def setup_class(cls):
-        app = make_wsgi_app(traverse.EngineRoot, cls.includeme)
-        cls.factory = TestAppFactory(app)
+        class AppFactory(object):
+            def __call__(self, global_config, **settings):
+                return make_wsgi_app(traverse.EngineRoot, cls.includeall, **settings)
+        cls.factory = TestAppFactory(AppFactory)
 
     def setUp(self):
         self.factory.begin()
 
     def tearDown(self):
         self.factory.rollback()
+
+    def getRequest(self, app):
+        """Return a stubbed request that has the configured registry and
+          provides a minimal api.
+        """
+
+        return StubRequest(app.registry)
