@@ -125,25 +125,29 @@ class AddEngineSubscriber(object):
             events = (events,)
 
         # For each event, add a subscriber.
-        def subscribe():
-            for value in events:
-                if value == constants.ASTERIX:
-                    # Subscribe to everything.
-                    subscriber = self.asterix_cls(op_handler)
-                else:
-                    # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
-                    param_name = value.split(':')[0]
-                    # Add a request param aware subscriber.
-                    subscriber = self.wrapper_cls(param_name, value, op_handler)
-                config.add_subscriber(subscriber, context)
+        for value in events:
+            if value == constants.ASTERIX:
+                # Subscribe to everything.
+                subscriber = self.asterix_cls(op_handler)
+            else:
+                # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
+                param_name = value.split(':')[0]
+                # Add a request param aware subscriber.
+                subscriber = self.wrapper_cls(param_name, value, op_handler)
+            config.add_subscriber(subscriber, context)
 
-        # Discriminated on everything -- this prevent unintentional
-        # duplicated event subscription.
+        # Followed up by a discriminator to prevent unintentional duplicated
+        # event subscription -- note that we have already registered the
+        # subscribers and the function we pass to config.action is a noop
+        # because ``config.add_subscriber`` itself hooks into the config commit
+        # machinery and if we delay calling it until later, our subscriptions
+        # are not actually registered.
+        noop = lambda: None
         key = 'engine.subscribe'
         discriminator = [key, context, operation, handler]
         discriminator.extend(events)
         discriminator.extend(kw.items())
-        config.action(tuple(discriminator), subscribe)
+        config.action(tuple(discriminator), noop)
 
 class GetActivityEvent(object):
     """Request method to lookup ActivityEvent instance from the value in the
