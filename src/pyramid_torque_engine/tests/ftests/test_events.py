@@ -83,7 +83,7 @@ class TestSubscriptions(boilerplate.AppTestCase):
         on(IFoo, a.POKE, o.BEEP_A_LOT, ops.Dispatch())
 
     def test_state_change_event_subscriber(self):
-        """Handle a state change event."""
+        """State change subscribers should work."""
 
         # Prepare.
         app = self.factory()
@@ -96,6 +96,65 @@ class TestSubscriptions(boilerplate.AppTestCase):
 
         # The s.STARTED event should trigger GO_FORTH and BEEP.
         handlers = get_handlers_for(dispatched, s.STARTED, names_only=True)
-        if handlers:
-            self.assertEqual(o.GO_FORTH, handlers[0])
-            self.assertEqual(o.BEEP, handlers[1])
+        self.assertEqual(handlers[0], o.GO_FORTH)
+        self.assertEqual(handlers[1], o.BEEP)
+        self.assertEqual(len(handlers), 2)
+
+    def test_multiple_matching_subscribers(self):
+        """Events fire for all interfaces provided by a context."""
+
+        # Prepare.
+        app = self.factory()
+        request = self.getRequest(app)
+        context = model.factory(cls=model.Foo)
+
+        # Perform a state change.
+        state_changer = request.state_changer
+        _, _, dispatched = state_changer.perform(context, a.START, None)
+
+        # The s.STARTED event should trigger GO_FORTH *and* MULTIPLY.
+        handlers = get_handlers_for(dispatched, s.STARTED, names_only=True)
+        self.assertEqual(handlers[0], o.GO_FORTH)
+        self.assertEqual(handlers[1], o.BEEP)
+        self.assertEqual(handlers[2], o.MULTIPLY)
+        self.assertEqual(len(handlers), 3)
+
+    def test_action_happened_subscriber(self):
+        """Action subscribers should work."""
+
+        # Prepare.
+        app = self.factory()
+        request = self.getRequest(app)
+        context = model.factory()
+
+        # Perform an action.
+        state_changer = request.state_changer
+        _, _, dispatched = state_changer.perform(context, a.POKE, None)
+
+        # The poke should trigger a beep.
+        handlers = get_handlers_for(dispatched, a.POKE, names_only=True)
+        self.assertEqual(handlers[0], o.BEEP)
+        self.assertEqual(len(handlers), 1)
+
+    def test_subscribers_with_interfaces(self):
+        """Subscribers should work with interfaces."""
+
+        # Prepare.
+        app = self.factory()
+        request = self.getRequest(app)
+        context = model.factory(cls=model.Foo)
+
+        # Perform an action.
+        state_changer = request.state_changer
+        _, _, dispatched = state_changer.perform(context, a.POKE, None)
+
+        # The action should trigger lots of beeps.
+        handlers = get_handlers_for(dispatched, a.POKE, names_only=True)
+        self.assertEqual(handlers[0], o.BEEP)
+        self.assertEqual(handlers[1], o.BEEP_A_LOT)
+        self.assertEqual(len(handlers), 2)
+
+        # And a state change event.
+        handlers = get_handlers_for(dispatched, s.POKED, names_only=True)
+        self.assertEqual(handlers[0], o.BEEP)
+        self.assertEqual(len(handlers), 1)
