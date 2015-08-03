@@ -87,12 +87,12 @@ class HookDispatcher(object):
         self.join_path = kwargs.get('join_path', join_path)
         client_cls = kwargs.get('client_cls', client.HybridTorqueClient)
         dispatcher = kwargs.get('dispatcher', client.AfterCommitDispatcher())
-        
+
         # Unpack the settings.
         settings = request.registry.settings
         torque_url = settings.get('torque.url')
         torque_api_key = settings.get('torque.api_key')
-        
+
         # Instantiate torque client.
         self.client = client_cls(dispatcher, torque_url, torque_api_key)
 
@@ -104,7 +104,7 @@ class HookDispatcher(object):
         settings = request.registry.settings
         webhooks_url = settings.get('webhooks.url')
         webhooks_api_key = settings.get('webhooks.api_key')
-        
+
         # Authenticate.
         if headers is None:
             headers = {}
@@ -148,7 +148,7 @@ class WorkEngineClient(object):
         self.unpack = kwargs.get('unpack', util.get_unpacked_object_id)
         client_cls = kwargs.get('client_cls', client.HybridTorqueClient)
         dispatcher = kwargs.get('dispatcher', client.AfterCommitDispatcher())
-        
+
         # Unpack the settings.
         settings = request.registry.settings
         torque_url = settings.get('torque.url')
@@ -156,7 +156,7 @@ class WorkEngineClient(object):
 
         # Instantiate torque client.
         self.client = client_cls(dispatcher, torque_url, app_id=app_id)
-    
+
     def _get_traversal_path(self, route, context):
         """Get the traversal path to context, prefixed with the route.
 
@@ -171,7 +171,7 @@ class WorkEngineClient(object):
 
         # Prepend the route part.
         parts = [route] + list(parts)
-        
+
         # Lose any ``None``s.
         parts = (str(item) for item in parts if item is not None)
 
@@ -186,7 +186,7 @@ class WorkEngineClient(object):
         settings = request.registry.settings
         engine_url = settings.get('engine.url')
         engine_api_key = settings.get('engine.api_key')
-        
+
         # Authenticate.
         if headers is None:
             headers = {}
@@ -221,7 +221,7 @@ class WorkEngineClient(object):
 
         # Get the path to the context on the events route.
         path = self._get_traversal_path('events', context)
-        
+
         # Either use the state passed in or look it up on the context.
         if state is None:
             state = context.work_status.value
@@ -232,7 +232,7 @@ class WorkEngineClient(object):
         }
         if event:
             data['event_id'] = event.id
-        
+
         # Dispatch to the engine.
         return self.dispatch(path, data=data)
 
@@ -248,7 +248,7 @@ class WorkEngineClient(object):
         }
         if event:
             data['event_id'] = event.id
-        
+
         # Dispatch to the engine.
         return self.dispatch(path, data=data)
 
