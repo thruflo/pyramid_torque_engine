@@ -258,7 +258,7 @@ class WorkEngineClient(object):
             data['event_id'] = event.id
 
         logger.info((
-            'torque.engine.happended',
+            'torque.engine.happened',
             'context: ', context.class_slug, context.id,
             'action: ', action,
         ))
