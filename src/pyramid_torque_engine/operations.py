@@ -74,9 +74,12 @@ class Perform(object):
           two args, the first one is the attr and the second is the action.
         """
 
-        attr, action = args if len(args) > 1 else None, args[0]
-        self.action = action
-        self.attr = attr
+        if len(args) == 1:
+            self.attr = None
+            self.action = args[0]
+        else:
+            self.attr = args[0]
+            self.action = args[1]
 
     def __call__(self, request, context, event, op):
         """Notify either the context or its relation that this operation has had
@@ -94,7 +97,7 @@ class Perform(object):
             if state_changer.can_perform(target, action):
                 _, _, dispatched = state_changer.perform(target, action, event)
                 all_dispatched += dispatched
-        return {op: dispatched}
+        return {op: all_dispatched}
 
 class Result(object):
     """Boilerplate for an operation that notifies a relation about a result."""
