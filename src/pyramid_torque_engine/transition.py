@@ -66,6 +66,7 @@ class TransitionHandler(object):
         _, __, dispatched = request.state_changer.perform(context, action, event)
         return {'dispatched': dispatched}
 
+
 class AddEngineTransition(object):
     """Configuration directive that uses the Pyramid ``view_config``
       machinery to perform a registered ``action`` for a given ``context``,

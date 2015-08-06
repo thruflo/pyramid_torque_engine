@@ -17,14 +17,22 @@ from . import orm
 from . import render
 from . import util
 
+class DefaultJSONifier(object):
+    def __init__(self, request):
+        self.request = request
+
+    def __call__(self, instance):
+        return instance.__json__(request=self.request)
+
 class ActivityEventFactory(object):
     """Boilerplate to create and save ``ActivityEvent``s."""
 
     def __init__(self, request, **kwargs):
         self.request = request
+        self.jsonify = kwargs.get('jsonify', DefaultJSONifier(request))
         self.model_cls = kwargs.get('model_cls', orm.ActivityEvent)
         self.session = kwargs.get('session', bm.Session)
-    
+
     def save(self, instance):
         self.session.add(instance)
         self.session.flush()
@@ -39,11 +47,13 @@ class ActivityEventFactory(object):
             parent.activity_events = [instance]
         return self.save(instance)
 
-    def snapshot(self, parent):
+    def snapshot(self, parent, user=None):
         request = self.request
         data = {
-            'parent': parent.__json__(request=request),
+            'parent': self.jsonify(parent),
         }
+        if user:
+            data['user'] = self.jsonify(user)
         return json.loads(render.json_dumps(request, data))
 
     def __call__(self, parent, user, type_=None, data=None, action=None):
@@ -60,7 +70,7 @@ class ActivityEventFactory(object):
             type_ = u'{0}:{1}'.format(target, action_name)
 
         # Add context snapshot to the event data.
-        data['snapshot'] = self.snapshot(parent)
+        data['snapshot'] = self.snapshot(parent, user)
 
         # Return a saved instance.
         return self.factory({

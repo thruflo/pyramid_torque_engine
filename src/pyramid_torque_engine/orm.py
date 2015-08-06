@@ -64,7 +64,7 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
 
     # Can belong to a ``parent`` via a ``ActivityEventAssociation``.
     association_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('activity_event_associations.id'),
     )
     assocation = orm.relationship(ActivityEventAssociation, backref='activity_events')
@@ -118,6 +118,9 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
             }
         return data
 
+
+
+
 class WorkStatusAssociation(bm.Base, bm.BaseMixin):
     """Polymorphic base that's used to associate a collection of
       ``WorkStatus``s with a parent.
@@ -127,33 +130,37 @@ class WorkStatusAssociation(bm.Base, bm.BaseMixin):
     discriminator = schema.Column(types.Unicode(64))
     __mapper_args__ = {'polymorphic_on': discriminator}
 
+
+
+
+
 class WorkStatus(bm.Base, bm.BaseMixin):
     """Define the properties provided by a work status entry."""
 
     # Store in `work_statuses`.
     __tablename__ = 'work_statuses'
-    
+
     # Must have a string status value
     value = schema.Column(
         types.Unicode(64),
-        default=DEFAULT_STATE, 
+        default=DEFAULT_STATE,
         nullable=False,
     )
 
     # Can belong to a ``parent`` via a ``WorkStatusAssociation``.
     association_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('work_status_associations.id'),
     )
     assocation = orm.relationship(WorkStatusAssociation, backref='work_statuses')
-    
+
     @property
     def parent(self):
         return self.assocation.parent
 
     # Can have an event (i.e.: the change to this state was triggered by).
     event_id = schema.Column(
-        types.Integer, 
+        types.Integer,
         schema.ForeignKey('activity_events.id'),
     )
     event = orm.relationship(
@@ -173,6 +180,60 @@ class WorkStatus(bm.Base, bm.BaseMixin):
             'type': self.class_slug,
             'id': self.id,
             'value': self.value,
+        }
+        return data
+
+class ReadStatusAssociation(bm.Base, bm.BaseMixin):
+    """Polymorphic base that's used to associate a collection of
+      ``ReadStatus``s with a parent.
+    """
+
+    __tablename__ = 'read_status_associations'
+    discriminator = schema.Column(types.Unicode(64))
+    __mapper_args__ = {'polymorphic_on': discriminator}
+
+
+class ReadStatus(bm.Base, bm.BaseMixin):
+    """
+    """
+
+    # Store all read statuses in a single table...
+    __tablename__ = 'read_statuses'
+
+    # Must have a read value
+    read = schema.Column(
+        types.DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    # Can belong to a ``parent`` via a ``WorkStatusAssociation``.
+    association_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('read_status_associations.id'),
+    )
+    assocation = orm.relationship(ReadStatusAssociation, backref='read_statuses')
+
+    @property
+    def parent(self):
+        return self.assocation.parent
+
+    # has a user
+    user_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('auth_users.id'),
+    )
+
+    user = orm.relationship(
+        simpleauth_model.User,
+        backref='read_statuses',
+    )
+
+    def __json__(self, request=None):
+        data = {
+            'type': self.class_slug,
+            'id': self.id,
+            'read': self.read,
         }
         return data
 
@@ -247,8 +308,73 @@ class WorkStatusMixin(object):
             backref=orm.backref('parent', uselist=False),
         )
 
+    @declarative.declared_attr
+    def read_status_association_id(cls):
+        return schema.Column(
+            types.Integer,
+            schema.ForeignKey('read_status_associations.id'),
+        )
+
+    @declarative.declared_attr
+    def read_status_association(cls):
+        """Dynamically defined association table relationship."""
+
+        class_name = '{0}ReadStatusAssociation'.format(cls.__name__)
+        bases = (ReadStatusAssociation,)
+        mapping = {
+            '__mapper_args__': {
+                'polymorphic_identity': cls.singular_class_slug,
+            }
+        }
+        association_cls = type(class_name, bases, mapping)
+        cls.ReadStatus = ReadStatus # <!-- just for backwards compatibility
+        cls.ReadStatusAssociation = association_cls
+        cls.read_statuses = proxy.association_proxy(
+            'read_status_association',
+            'read_statuses',
+            creator=lambda read_statuses: association_cls(read_statuses=read_statuses)
+        )
+        return orm.relationship(
+            association_cls,
+            backref=orm.backref('parent', uselist=False),
+        )
+
+    def set_read_status(self, user_id):
+        """Append a new read status to the entry list."""
+
+        # Add a new entry to the status collection.
+        status = ReadStatus(read=datetime.utcnow(), user_id=user_id)
+        if self.read_statuses:
+            self.read_statuses.append(status)
+        else:
+            self.read_statuses = [status]
+
+        # Update timestamps.
+        self.modified = datetime.utcnow()
+
+        # Make sure everything gets saved.
+        bm.Session.add_all([self, status])
+        bm.Session.flush()
+
+        # Return the new status instance.
+        return status
+
+
+    def get_read_status(self, user_id):
+        """Return the read status for a user"""
+
+        query = ReadStatus.query
+        query = query.filter_by(association_id=self.read_status_association_id)
+        query = query.filter_by(user_id=user_id)
+        query = query.order_by(ReadStatus.created.desc())
+        return query.first()
+
+
     def set_work_status(self, value, event=None, model_cls=WorkStatus):
         """Append a new work status to the entry list."""
+
+        # Make sure we're not detatched o_O.
+        bm.Session.add(self)
 
         # Add a new entry to the status collection.
         status = model_cls(value=value, event=event)
@@ -267,6 +393,7 @@ class WorkStatusMixin(object):
         # Return the new status instance.
         return status
 
+
     def get_work_status(self, value=None, model_cls=WorkStatus):
         """Return the most recent work status, optionally filtered by value."""
 
@@ -276,6 +403,7 @@ class WorkStatusMixin(object):
             query = query.filter_by(value=value)
         query = query.order_by(model_cls.created.desc())
         return query.first()
+
 
     @property
     def work_status(self):

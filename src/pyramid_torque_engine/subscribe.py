@@ -20,6 +20,7 @@
 
 __all__ = [
     'AddEngineSubscriber',
+    'AsterixSubscriber',
     'GetActivityEvent',
     'ParamAwareSubscriber',
     'StateChangeHandler',
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 import zope.interface
 
+from . import constants
 from . import repo
 
 class StateChangeHandler(object):
@@ -67,7 +69,7 @@ class ParamAwareSubscriber(object):
         self.param = param
         self.value = value
         self.handler = handler
-    
+
     def __call__(self, combined_args):
         """Validate that the request param matches and, if so, call the
           handler function.
@@ -85,13 +87,32 @@ class ParamAwareSubscriber(object):
         # If so, call the handler.
         return self.handler(request, *args)
 
+class AsterixSubscriber(object):
+    """Alternative to the param aware subscriber for handlers that should
+      be registered for everything using, e.g.:
+
+          on(IFoo, '*', op.PERFORM_FOO, handler)
+
+    """
+
+    def __init__(self, handler):
+        self.handler = handler
+
+    def __call__(self, combined_args):
+        """Call the handler function."""
+
+        request = combined_args[0]
+        args = combined_args[1:]
+        return self.handler(request, *args)
+
 class AddEngineSubscriber(object):
     """Register a ``handler`` function for one or more namespaced events."""
 
     def __init__(self, **kwargs):
+        self.asterix_cls = kwargs.get('asterix_cls', AsterixSubscriber)
         self.wrapper_cls = kwargs.get('wrapper_cls', ParamAwareSubscriber)
 
-    def __call__(self, config, context, events, operation, handler):
+    def __call__(self, config, context, events, operation, handler, **kw):
         """Subscribe a handler for each event."""
 
         # Extend the handler's args with the operation.
@@ -105,11 +126,28 @@ class AddEngineSubscriber(object):
 
         # For each event, add a subscriber.
         for value in events:
-            # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
-            param_name = value.split(':')[0]
-            # Add a request param aware subscriber.
-            subscriber = self.wrapper_cls(param_name, value, op_handler)
+            if value == constants.ASTERIX:
+                # Subscribe to everything.
+                subscriber = self.asterix_cls(op_handler)
+            else:
+                # Split e.g.: `'state:FOO'` into `('state', 'FOO')`.
+                param_name = value.split(':')[0]
+                # Add a request param aware subscriber.
+                subscriber = self.wrapper_cls(param_name, value, op_handler)
             config.add_subscriber(subscriber, context)
+
+        # Followed up by a discriminator to prevent unintentional duplicated
+        # event subscription -- note that we have already registered the
+        # subscribers and the function we pass to config.action is a noop
+        # because ``config.add_subscriber`` itself hooks into the config commit
+        # machinery and if we delay calling it until later, our subscriptions
+        # are not actually registered.
+        noop = lambda: None
+        key = 'engine.subscribe'
+        discriminator = [key, context, operation, handler]
+        discriminator.extend(events)
+        discriminator.extend(kw.items())
+        config.action(tuple(discriminator), noop)
 
 class GetActivityEvent(object):
     """Request method to lookup ActivityEvent instance from the value in the

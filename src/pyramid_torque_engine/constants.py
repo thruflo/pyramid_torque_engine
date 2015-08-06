@@ -2,6 +2,16 @@
 
 from . import util as _util
 
+ASTERIX = '*'
+
+# Registration "constants" -- open to being populated during configuration,
+# closed afterwards in the `includeme` function below.
+ACTIONS = _util.DeclaredNamespacedNamedTuple(u'Action')
+OPERATIONS = _util.DeclaredNamespacedNamedTuple(u'Operation')
+RESULTS = _util.DeclaredNamespacedNamedTuple(u'Result')
+STATES = _util.DeclaredNamespacedNamedTuple(u'State')
+STATES.register('CREATED')
+
 # Environment variable names.
 ENGINE_API_KEY = 'ENGINE_API_KEY'
 ENGINE_URL = 'ENGINE_URL'
