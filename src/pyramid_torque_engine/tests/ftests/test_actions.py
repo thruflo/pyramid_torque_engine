@@ -9,7 +9,6 @@ import fysom
 
 from pyramid import config as pyramid_config
 
-from pyramid_torque_engine import constants
 from pyramid_torque_engine import unpack
 a, o, r, s = unpack.constants()
 
