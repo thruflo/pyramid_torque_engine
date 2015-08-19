@@ -27,6 +27,8 @@ from sqlalchemy.ext import hybrid
 import pyramid_basemodel as bm
 from pyramid_simpleauth import model as simpleauth_model
 
+from . import render
+
 # XXX It may be better to require the code that creates a work status to
 # explicitly set the value rather than relying on this abitrary default.
 DEFAULT_STATE = os.environ.get('ENGINE_DEFAULT_STATE', u'state:CREATED')
@@ -85,6 +87,10 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
     # `message:created`, `job:confirmed`, etc.
     target = schema.Column(types.Unicode, nullable=False)
     action = schema.Column(types.Unicode, nullable=False)
+
+    # Returns a JSON representation of data without decimals.
+    def normalised_data(self, request):
+        return render.json_dumps(request, self.data)
 
     # These are exposed and can be managed using `type_`.
     @hybrid.hybrid_property
