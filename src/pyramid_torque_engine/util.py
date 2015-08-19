@@ -116,7 +116,11 @@ def get_interfaces(resource):
 def get_object_id(instance):
     """Return ``u'tablename#ID'`` for ``instance``."""
 
-    return pack_object_id(instance.__tablename__, instance.id)
+    if hasattr(instance, '_class_slug'):
+        slug = instance._class_slug
+    else:
+        slug = instance.__tablename__
+    return pack_object_id(slug, instance.id)
 
 def id_validator(node, value):
     try:
