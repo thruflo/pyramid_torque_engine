@@ -27,8 +27,9 @@ VALID_API_KEY = re.compile(r'^\w{40}$')
 class ACLWrapper(object):
     """Adapt a request to provide an ACL."""
 
-    def __init__(self, request):
+    def __init__(self, request, context=None):
         self.request = request
+        self.context = context
 
     @property
     def __acl__(self):
@@ -56,15 +57,11 @@ class ACLContainer(container.BaseModelContainer):
     """Return contexts patched with an ACL."""
 
     def __getitem__(self, key):
+
         request = self.request
         context = super(ACLContainer, self).__getitem__(key)
-        try:
-            context.__acl__ = ACLWrapper(request).__acl__
-        except AttributeError:
-            policy = ACLWrapper(request).__acl__
-            for index, rule in enumerate(policy):
-                context.__acl__.insert(index, rule)
-        return context
+        return ACLWrapper(request, context)
+
 
 @zi.implementer(interfaces.IAuthenticationPolicy)
 class APIKeyAuthenticationPolicy(authentication.CallbackAuthenticationPolicy):
