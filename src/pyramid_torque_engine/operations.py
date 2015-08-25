@@ -9,6 +9,8 @@ __all__ = [
     'get_targets',
 ]
 
+import pyramid_basemodel as bm
+
 def get_targets(context, attr):
     """Get context.attr as a list of targets.
 
@@ -18,6 +20,15 @@ def get_targets(context, attr):
 
       If attr is None than targets = [context]
     """
+
+    # XXX before starting, make sure that the insance isn't detached.
+    # otherwise tests throw errors like:
+    #
+    #     DetachedInstanceError: Parent instance <AssetVersion at 0x7f781f831290> is not bound
+    #     to a Session; lazy load operation of attribute 'fileset_versions' cannot proceed
+    #
+    # It may be that this is only an issue for ftests.
+    bm.Session.add(context)
 
     relation = getattr(context, attr) if attr else context
     if relation is None:
