@@ -27,9 +27,13 @@ from sqlalchemy.ext import hybrid
 import pyramid_basemodel as bm
 from pyramid_simpleauth import model as simpleauth_model
 
+import zope.interface as zi
+from . import interfaces
+
 # XXX It may be better to require the code that creates a work status to
 # explicitly set the value rather than relying on this abitrary default.
 DEFAULT_STATE = os.environ.get('ENGINE_DEFAULT_STATE', u'state:CREATED')
+
 
 class ActivityEventAssociation(bm.Base, bm.BaseMixin):
     """Polymorphic base that's used to associate a collection of
@@ -129,9 +133,6 @@ class WorkStatusAssociation(bm.Base, bm.BaseMixin):
     __tablename__ = 'work_status_associations'
     discriminator = schema.Column(types.Unicode(64))
     __mapper_args__ = {'polymorphic_on': discriminator}
-
-
-
 
 
 class WorkStatus(bm.Base, bm.BaseMixin):
@@ -237,6 +238,7 @@ class ReadStatus(bm.Base, bm.BaseMixin):
         }
         return data
 
+@zi.implementer(interfaces.IWorkStatus)
 class WorkStatusMixin(object):
     """Mixin a collection of work_statuses and activity_events to each target
       ORM class.

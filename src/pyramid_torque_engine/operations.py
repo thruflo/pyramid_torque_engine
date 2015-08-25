@@ -9,6 +9,8 @@ __all__ = [
     'get_targets',
 ]
 
+import pyramid_basemodel as bm
+
 def get_targets(context, attr):
     """Get context.attr as a list of targets.
 

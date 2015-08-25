@@ -10,7 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 import zope.interface as zi
+import pyramid_basemodel as bm
 
+from pyramid_basemodel import container
 from pyramid_basemodel import tree
 
 from . import auth
@@ -27,14 +29,12 @@ class EngineRoot(tree.BaseContentRoot):
     """
 
     @property
-    def __acl__(self):
-        wrapper = auth.ACLWrapper(self.request)
-        return wrapper.__acl__
-
-    @property
     def mapping(self):
         registry = self.request.registry
         return getattr(registry, 'engine_resource_mapping', {})
+
+class ResourceContainer(container.BaseModelContainer):
+    pass
 
 def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
     """Populate the ``registry.engine_resource_mapping``."""
@@ -49,7 +49,7 @@ def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
 
     # Create the container class.
     class_name = '{0}Container'.format(resource_cls.__name__)
-    container_cls = type(class_name, (auth.ACLContainer,), {})
+    container_cls = type(class_name, (ResourceContainer,), {})
     zi.classImplements(container_cls, container_iface)
 
     # Make sure we have a mapping.

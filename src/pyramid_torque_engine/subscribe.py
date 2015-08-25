@@ -30,7 +30,8 @@ __all__ = [
 import logging
 logger = logging.getLogger(__name__)
 
-import zope.interface
+import zope.interface as zi
+import pyramid_basemodel as bm
 
 from . import constants
 from . import repo
@@ -39,7 +40,8 @@ class StateChangeHandler(object):
     """Dispatch state changed events to registered subscribers."""
 
     def __init__(self, **kwargs):
-        self.providedBy = kwargs.get('providedBy', zope.interface.providedBy)
+        self.providedBy = kwargs.get('providedBy', zi.providedBy)
+        self.session = kwargs.get('session', bm.Session)
 
     def __call__(self, request):
         """Log and call."""
@@ -49,11 +51,15 @@ class StateChangeHandler(object):
         event = request.activity_event
         registry = request.registry
         subscriptions = registry.adapters.subscriptions
-        providedBy = self.providedBy
 
         # Dispatch.
         results = []
-        for handler in subscriptions([providedBy(context)], None):
+        for handler in subscriptions([self.providedBy(context)], None):
+            # XXX it seems that subscription handlers can cause the context to be
+            # detatched, perhaps just in tests. So just sanity check / make sure
+            # the instance is in the session before passing to each handler.
+            # Where the instance is already in the session, this is a noop anyway.
+            self.session.add(context)
             # Note that we pass through the args as a single tuple
             # as the Pyramid events machinery expects a single value.
             combined_args = (request, context, event)
