@@ -37,10 +37,10 @@ class IncludeMe(object):
 
     def __init__(self, **kwargs):
         self.default_settings = kwargs.get('default_settings', DEFAULTS)
-        self.authn_policy = kwargs.get('authn_policy',
+        self.authentication_policy = kwargs.get('authentication_policy',
                 auth.APIKeyAuthenticationPolicy(constants.ENGINE_API_KEY_NAMES))
-        self.authz_policy = kwargs.get('authz_policy',
-                authorization.ACLAuthorizationPolicy())
+        self.authorization_policy_cls = kwargs.get('authorization_policy_cls',
+                auth.APIKeyAuthorizationPolicy)
 
     def __call__(self, config):
         """Apply the default settings and auth policies, expose views
@@ -58,8 +58,9 @@ class IncludeMe(object):
         if not should_authenticate:
             config.set_default_permission(security.NO_PERMISSION_REQUIRED)
         else:
-            config.set_authorization_policy(self.authz_policy)
-            config.set_authentication_policy(self.authn_policy)
+            authorization_policy = self.authorization_policy_cls(api_key)
+            config.set_authentication_policy(self.authentication_policy)
+            config.set_authorization_policy(authorization_policy)
             config.set_default_permission('view')
 
         # Expose the `/events` and `/results` views and provide the

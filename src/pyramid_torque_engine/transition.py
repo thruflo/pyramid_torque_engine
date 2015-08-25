@@ -59,7 +59,7 @@ class TransitionHandler(object):
 
         # Unpack.
         action = self.action
-        context = request.context.context
+        context = request.context
         event = request.activity_event # XXX do we need / get this?
 
         # Perform.

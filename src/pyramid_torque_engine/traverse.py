@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 import zope.interface as zi
 
+from pyramid_basemodel import container
 from pyramid_basemodel import tree
 
 from . import auth
@@ -25,11 +26,6 @@ class EngineRoot(tree.BaseContentRoot):
     """Lookup registered resources by tablename and id, wrapping the result
       in an ACL wrapper that restricts access by api key.
     """
-
-    @property
-    def __acl__(self):
-        wrapper = auth.ACLWrapper(self.request)
-        return wrapper.__acl__
 
     @property
     def mapping(self):
@@ -49,7 +45,7 @@ def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
 
     # Create the container class.
     class_name = '{0}Container'.format(resource_cls.__name__)
-    container_cls = type(class_name, (auth.ACLContainer,), {})
+    container_cls = type(class_name, (container.BaseModelContainer,), {})
     zi.classImplements(container_cls, container_iface)
 
     # Make sure we have a mapping.

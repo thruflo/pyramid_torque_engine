@@ -45,7 +45,7 @@ class StateChangeHandler(object):
         """Log and call."""
 
         # Unpack.
-        context = request.context.context
+        context = request.context
         event = request.activity_event
         registry = request.registry
         subscriptions = registry.adapters.subscriptions
@@ -169,8 +169,8 @@ class GetActivityEvent(object):
             if event:
                 return event
         # Fallback.
-        if request.context and request.context.context:
-            status = getattr(request.context.context, 'work_status', None)
+        if request.context:
+            status = getattr(request.context, 'work_status', None)
             if status:
                 return status.event
 

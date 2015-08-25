@@ -5,9 +5,8 @@
 """
 
 __all__ = [
-    'ACLContainer',
-    'ACLWrapper',
     'APIKeyAuthenticationPolicy',
+    'APIKeyAuthorizationPolicy',
 ]
 
 import logging
@@ -18,50 +17,8 @@ import zope.interface as zi
 
 from pyramid import authentication
 from pyramid import interfaces
-from pyramid import security as sec
-
-from pyramid_basemodel import container
 
 VALID_API_KEY = re.compile(r'^\w{40}$')
-
-class ACLWrapper(object):
-    """Adapt a request to provide an ACL."""
-
-    def __init__(self, request, context=None):
-        self.request = request
-        self.context = context
-
-    @property
-    def __acl__(self):
-        """Grant api key authenticated requests full access."""
-
-        # Unpack.
-        request = self.request
-        settings = request.registry.settings
-
-        # Allow everybody public access.
-        rules = [
-            [sec.Allow, sec.Everyone, sec.NO_PERMISSION_REQUIRED],
-            [sec.Deny, sec.Everyone, sec.ALL_PERMISSIONS],
-        ]
-
-        # Allow API key authenticated requests all permissions.
-        api_key = settings.get('engine.api_key')
-        if api_key:
-            rule = [sec.Allow, api_key, sec.ALL_PERMISSIONS]
-            rules.insert(0, rule)
-
-        return rules
-
-class ACLContainer(container.BaseModelContainer):
-    """Return contexts patched with an ACL."""
-
-    def __getitem__(self, key):
-
-        request = self.request
-        context = super(ACLContainer, self).__getitem__(key)
-        return ACLWrapper(request, context)
-
 
 @zi.implementer(interfaces.IAuthenticationPolicy)
 class APIKeyAuthenticationPolicy(authentication.CallbackAuthenticationPolicy):
@@ -96,3 +53,18 @@ class APIKeyAuthenticationPolicy(authentication.CallbackAuthenticationPolicy):
         """A no-op. There's no user to forget."""
 
         return []
+
+@zi.implementer(interfaces.IAuthorizationPolicy)
+class APIKeyAuthorizationPolicy(object):
+    """Global authorization policy that ignores the context and just checks
+      whether the target api key is in the principals list.
+    """
+
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def permits(self, context, principals, permission):
+        return self.api_key in principals
+
+    def principals_allowed_by_permission(self, context, permission):
+        raise NotImplementedError
