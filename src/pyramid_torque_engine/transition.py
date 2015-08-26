@@ -61,11 +61,15 @@ class TransitionHandler(object):
         action = self.action
         context = request.context
         event = request.activity_event # XXX do we need / get this?
+        state_changer = request.state_changer
+
+        # Prepare
+        dispatched = []
 
         # Perform.
-        _, __, dispatched = request.state_changer.perform(context, action, event)
+        if state_changer.can_perform(context, action):
+            _, __, dispatched = request.state_changer.perform(context, action, event)
         return {'dispatched': dispatched}
-
 
 class AddEngineTransition(object):
     """Configuration directive that uses the Pyramid ``view_config``

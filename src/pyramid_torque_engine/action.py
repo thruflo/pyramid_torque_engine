@@ -60,10 +60,11 @@ class StateChanger(object):
         self.engine = kwargs.get('engine', request.torque.engine)
         self.get_machine = kwargs.get('get_machine', request.get_state_machine)
 
-    def can_perform(self, context, action):
+    def can_perform(self, context, action, machine=None):
         """Can ``self.context`` perform ``action`` in its current state?"""
 
-        machine = self.get_machine(context, action=action)
+        if machine is None:
+            machine = self.get_machine(context, action=action)
         return bool(machine and machine.can(action))
 
     def perform(self, context, action, event):
