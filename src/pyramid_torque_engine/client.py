@@ -261,7 +261,7 @@ class WorkEngineClient(object):
         # Dispatch to the engine.
         return self.dispatch(path, data=data)
 
-    def result(self, context, operation, result, event_id=None, **kwargs):
+    def result(self, context, operation, result, event=None, event_id=None, **kwargs):
         """Tell the work engine that an ``operation`` had the specified ``result``."""
 
         # Get the path to the context on the results route.
@@ -271,8 +271,11 @@ class WorkEngineClient(object):
         data = {
             'operation': operation,
             'result': result,
-            'event_id': event_id,
         }
+        if event:
+            data['event_id'] = event.id
+        elif event_id:
+            data['event_id'] = event_id
 
         logger.info((
             'torque.engine.result',
