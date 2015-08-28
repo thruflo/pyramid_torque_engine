@@ -42,6 +42,13 @@ DEFAULTS = {
     'webhooks.url': util.get_var(env, c.WEBHOOKS_URL_NAMES, '/hooks'),
 }
 
+def client_factory(client_cls, dispatcher, settings):
+    """Shared logic to instantiate a configured torque client utility."""
+
+    torque_url = settings.get('torque.url')
+    torque_api_key = settings.get('torque.api_key')
+    return client_cls(dispatcher, torque_url, torque_api_key)
+
 class WebTestDispatcher(client.DirectDispatcher):
     """A dispatcher that skips nTorque and just makes the request directly
       using a ``ntorque.tests.ftests.test_client.WestTestPoster``.
@@ -87,14 +94,8 @@ class HookDispatcher(object):
         self.join_path = kwargs.get('join_path', join_path)
         client_cls = kwargs.get('client_cls', client.HybridTorqueClient)
         dispatcher = kwargs.get('dispatcher', client.AfterCommitDispatcher())
-
-        # Unpack the settings.
         settings = request.registry.settings
-        torque_url = settings.get('torque.url')
-        torque_api_key = settings.get('torque.api_key')
-
-        # Instantiate torque client.
-        self.client = client_cls(dispatcher, torque_url, torque_api_key)
+        self.client = client_factory(client_cls, dispatcher, settings)
 
     def __call__(self, path, data=None, headers=None, timeout=None):
         """Use the request to instantiate a client and dispatch a request."""
@@ -149,14 +150,8 @@ class WorkEngineClient(object):
         self.unpack = kwargs.get('unpack', util.get_unpacked_object_id)
         client_cls = kwargs.get('client_cls', client.HybridTorqueClient)
         dispatcher = kwargs.get('dispatcher', client.AfterCommitDispatcher())
-
-        # Unpack the settings.
         settings = request.registry.settings
-        torque_url = settings.get('torque.url')
-        app_id = settings.get('torque.api_authenticated_app_id')
-
-        # Instantiate torque client.
-        self.client = client_cls(dispatcher, torque_url, app_id=app_id)
+        self.client = client_factory(client_cls, dispatcher, settings)
 
     def _get_traversal_path(self, route, context):
         """Get the traversal path to context, prefixed with the route.
