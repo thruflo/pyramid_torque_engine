@@ -4,7 +4,7 @@
   registered json renderer.
 """
 
-from util import json_dumps as decimal_json_dumps
+import json
 
 from pyramid import interfaces as pi
 
@@ -22,7 +22,7 @@ def json_dumps(request, value):
     if is_testing:
         import mock
         if isinstance(renderer, mock.Mock):
-            renderer = lambda x, y: decimal_json_dumps(x)
+            renderer = lambda x, y: json.dumps(x)
 
     # Use it to dumps.
     return renderer(value, {})
