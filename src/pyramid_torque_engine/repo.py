@@ -5,6 +5,8 @@
 __all__ = [
     'ActivityEventFactory',
     'LookupActivityEvent',
+    'NotificationFactory',
+    'LookupNotification',
 ]
 
 import logging
@@ -16,6 +18,8 @@ import pyramid_basemodel as bm
 from . import orm
 from . import render
 from . import util
+
+import datetime
 
 class DefaultJSONifier(object):
     def __init__(self, request):
@@ -132,3 +136,47 @@ class LookupActivityEvent(object):
 
         # Ok, we got a match.
         return instance
+
+class NotificationFactory(object):
+    """Boilerplate to create and save ``Notification``s."""
+
+    def __init__(self, request, **kwargs):
+        self.request = request
+        self.jsonify = kwargs.get('jsonify', DefaultJSONifier(request))
+        self.notification_cls = kwargs.get('notification_cls', orm.Notification)
+        self.notification_dispatch_cls = kwargs.get('notification_dispatch_cls',
+                orm.NotificationDispatch)
+        self.session = kwargs.get('session', bm.Session)
+
+    def __call__(self, event, user, dispatch_mapping):
+        """Create and store a notification and a notification dispatch."""
+
+        # Unpack.
+        session = self.session
+
+        # Create notification.
+        notification = self.notification_cls(user=user, event=event)
+        session.add(notification)
+
+        # Create notification dispatch for each channel.
+        for k, v in dispatch_mapping.items():
+            notification_dispatch = self.notification_dispatch_cls(notification=notification,
+                    due=datetime.datetime.now(), category=k, view=v['view'],
+                    single_spec=v['single'], batch_spec=v['batch'])
+            session.add(notification_dispatch)
+
+        # Save to the database.
+        session.flush()
+
+        return notification, notification_dispatch
+
+class LookupNotification(object):
+    """Lookup notifications."""
+
+    def __init__(self, **kwargs):
+        self.model_cls = kwargs.get('model_cls', orm.Notification)
+
+    def __call__(self, id_):
+        """Lookup by ID."""
+
+        return self.model_cls.query.get(id_)

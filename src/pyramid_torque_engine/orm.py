@@ -7,6 +7,8 @@
 
 __all__ = [
     'ActivityEvent',
+    'Notification',
+    'NotificationDispatch',
     'WorkStatus',
     'WorkStatusMixin',
 ]
@@ -184,60 +186,6 @@ class WorkStatus(bm.Base, bm.BaseMixin):
         }
         return data
 
-class ReadStatusAssociation(bm.Base, bm.BaseMixin):
-    """Polymorphic base that's used to associate a collection of
-      ``ReadStatus``s with a parent.
-    """
-
-    __tablename__ = 'read_status_associations'
-    discriminator = schema.Column(types.Unicode(64))
-    __mapper_args__ = {'polymorphic_on': discriminator}
-
-
-class ReadStatus(bm.Base, bm.BaseMixin):
-    """
-    """
-
-    # Store all read statuses in a single table...
-    __tablename__ = 'read_statuses'
-
-    # Must have a read value
-    read = schema.Column(
-        types.DateTime,
-        default=datetime.utcnow,
-        nullable=False,
-    )
-
-    # Can belong to a ``parent`` via a ``WorkStatusAssociation``.
-    association_id = schema.Column(
-        types.Integer,
-        schema.ForeignKey('read_status_associations.id'),
-    )
-    assocation = orm.relationship(ReadStatusAssociation, backref='read_statuses')
-
-    @property
-    def parent(self):
-        return self.assocation.parent
-
-    # has a user
-    user_id = schema.Column(
-        types.Integer,
-        schema.ForeignKey('auth_users.id'),
-    )
-
-    user = orm.relationship(
-        simpleauth_model.User,
-        backref='read_statuses',
-    )
-
-    def __json__(self, request=None):
-        data = {
-            'type': self.class_slug,
-            'id': self.id,
-            'read': self.read,
-        }
-        return data
-
 @zi.implementer(interfaces.IWorkStatus)
 class WorkStatusMixin(object):
     """Mixin a collection of work_statuses and activity_events to each target
@@ -310,68 +258,6 @@ class WorkStatusMixin(object):
             backref=orm.backref('parent', uselist=False),
         )
 
-    @declarative.declared_attr
-    def read_status_association_id(cls):
-        return schema.Column(
-            types.Integer,
-            schema.ForeignKey('read_status_associations.id'),
-        )
-
-    @declarative.declared_attr
-    def read_status_association(cls):
-        """Dynamically defined association table relationship."""
-
-        class_name = '{0}ReadStatusAssociation'.format(cls.__name__)
-        bases = (ReadStatusAssociation,)
-        mapping = {
-            '__mapper_args__': {
-                'polymorphic_identity': cls.singular_class_slug,
-            }
-        }
-        association_cls = type(class_name, bases, mapping)
-        cls.ReadStatus = ReadStatus # <!-- just for backwards compatibility
-        cls.ReadStatusAssociation = association_cls
-        cls.read_statuses = proxy.association_proxy(
-            'read_status_association',
-            'read_statuses',
-            creator=lambda read_statuses: association_cls(read_statuses=read_statuses)
-        )
-        return orm.relationship(
-            association_cls,
-            backref=orm.backref('parent', uselist=False),
-        )
-
-    def set_read_status(self, user_id):
-        """Append a new read status to the entry list."""
-
-        # Add a new entry to the status collection.
-        status = ReadStatus(read=datetime.utcnow(), user_id=user_id)
-        if self.read_statuses:
-            self.read_statuses.append(status)
-        else:
-            self.read_statuses = [status]
-
-        # Update timestamps.
-        self.modified = datetime.utcnow()
-
-        # Make sure everything gets saved.
-        bm.Session.add_all([self, status])
-        bm.Session.flush()
-
-        # Return the new status instance.
-        return status
-
-
-    def get_read_status(self, user_id):
-        """Return the read status for a user"""
-
-        query = ReadStatus.query
-        query = query.filter_by(association_id=self.read_status_association_id)
-        query = query.filter_by(user_id=user_id)
-        query = query.order_by(ReadStatus.created.desc())
-        return query.first()
-
-
     def set_work_status(self, value, event=None, model_cls=WorkStatus):
         """Append a new work status to the entry list."""
 
@@ -410,3 +296,86 @@ class WorkStatusMixin(object):
     @property
     def work_status(self):
         return self.get_work_status()
+
+class NotificationDispatch(bm.Base, bm.BaseMixin):
+    """A notification dispatch to an user, holds information about how to deliver
+    and when."""
+
+    __tablename__ = 'notifications_dispatch'
+
+    # Has a due date.
+    due = schema.Column(types.DateTime)
+
+    # Has a sent date.
+    sent = schema.Column(types.DateTime)
+
+    # has a Notification.
+    notification_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('notifications.id'),
+    )
+
+    # view  -> function to decode things
+    view = schema.Column(types.Unicode(96))
+    # simple for the moment, either single or batch text. XXX use ENUM.
+    type_ = schema.Column(types.Unicode(96))
+    # dotted path for the asset spec.
+    single_spec = schema.Column(types.Unicode(96))
+    batch_spec = schema.Column(types.Unicode(96))
+    # simple for the moment, either email or sms. XXX use ENUM.
+    category = schema.Column(types.Unicode(96))
+    # email or telephone number
+    address = schema.Column(types.Unicode(96))
+
+class Notification(bm.Base, bm.BaseMixin):
+    """A notification about an event that should be sent to an user."""
+
+    __tablename__ = 'notifications'
+
+    # has an user.
+    user_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('auth_users.id'),
+    )
+
+    user = orm.relationship(
+        simpleauth_model.User,
+        backref='notification',
+    )
+
+    # Has a read date.
+    read = schema.Column(types.DateTime)
+
+    notification_dispatch = orm.relationship(
+        NotificationDispatch,
+        backref='notification')
+
+    # has an Activity event.
+    # One to many
+    event_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('activity_events.id'),
+    )
+    event = orm.relationship(
+        ActivityEvent,
+        backref=orm.backref(
+            'notification',
+            lazy='joined',
+            single_parent=True,
+            uselist=False,
+        ),
+        lazy='joined',
+        uselist=False,
+    )
+
+    def __json__(self, request=None):
+        """Represent the event as a JSON serialisable dict."""
+
+        data = {
+            'id': self.id,
+            'user_id': self.user_id,
+            'created_at': self.created.isoformat(),
+            'read_at': self.read.isoformat(),
+            'event_id': self.event_id,
+        }
+        return data
