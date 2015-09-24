@@ -170,11 +170,11 @@ class NotificationFactory(object):
 
         return notification, notification_dispatch
 
-class LookupNotification(object):
+class LookupNotificationDispatch(object):
     """Lookup notifications."""
 
     def __init__(self, **kwargs):
-        self.model_cls = kwargs.get('model_cls', orm.Notification)
+        self.model_cls = kwargs.get('model_cls', orm.NotificationDispatch)
 
     def __call__(self, id_):
         """Lookup by ID."""
