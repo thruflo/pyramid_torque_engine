@@ -9,6 +9,7 @@ __all__ = [
     'get_targets',
 ]
 
+import fysom
 import pyramid_basemodel as bm
 
 def get_targets(context, attr):
@@ -97,8 +98,10 @@ class Perform(object):
         state_changer = request.state_changer
         for target in targets:
             if state_changer.can_perform(target, action):
-                _, _, dispatched = state_changer.perform(target, action, event)
-                all_dispatched += dispatched
+                try:
+                    _, _, dispatched = state_changer.perform(target, action, event)
+                except fysom.FysomError as err:
+                    logger.warn(err)
         return {op: all_dispatched}
 
 class Result(object):
