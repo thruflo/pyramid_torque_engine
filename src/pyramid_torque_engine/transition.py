@@ -121,6 +121,19 @@ class AddEngineTransition(object):
         msg = (action, u'not registered for context', context)
         raise exceptions.ConfigurationError(msg)
 
+
+def noop_handler(request):
+    """Catch all handler, checks if the request has a context, if it
+    does, return a 204 else 404.
+    """
+
+    if request.context:
+        request.response.status_int = 204
+    else:
+        request.response.status_int = 404
+    return request.response
+
+
 class IncludeMe(object):
     """Handle `/results...` and provide an ``add_engine_transition`` directive."""
 
@@ -132,6 +145,10 @@ class IncludeMe(object):
 
         # Configure.
         config.add_route('results', '/results/*traverse')
+        # Add a catch all view that responds to when a result cannot find
+        # a subscriber. In this case 204 is returned instead of 404.
+        config.add_view(noop_handler, renderer='json', request_method='POST',
+                route_name='results')
         config.add_view_predicate('json_param', JSONPredicate)
         config.add_directive('add_engine_transition', self.add_transition)
 
