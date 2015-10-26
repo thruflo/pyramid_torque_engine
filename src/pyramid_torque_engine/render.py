@@ -22,7 +22,7 @@ def json_dumps(request, value):
     if is_testing:
         import mock
         if isinstance(renderer, mock.Mock):
-            renderer = lambda x, y: json.dumps(x)
+            renderer = lambda x, y: json.dumps({})
 
     # Use it to dumps.
     return renderer(value, {})
