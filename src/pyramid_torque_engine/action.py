@@ -173,7 +173,14 @@ class AddEngineAction(object):
         # long as the from_states are unique.
         for state in from_states:
             discriminator = ('engine.action', context, action, state)
-            config.action(discriminator, lambda: self.register(registry, context))
+
+            # Make it introspectable.
+            intr = config.introspectable(category_name='engine action',
+                                         discriminator=discriminator,
+                                         title='An engine action',
+                                         type_name=None)
+            intr['value'] = (context, action, from_states, to_state)
+            config.action(discriminator, lambda: self.register(registry, context), introspectables=(intr,))
 
         # And with that queued up, immediately store the from and two states
         # in an action_rules dict.
