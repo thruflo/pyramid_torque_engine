@@ -20,6 +20,7 @@ from . import render
 from . import util
 
 import datetime
+from dateutil.relativedelta import relativedelta
 
 class DefaultJSONifier(object):
     def __init__(self, request):
@@ -148,7 +149,7 @@ class NotificationFactory(object):
                 orm.NotificationDispatch)
         self.session = kwargs.get('session', bm.Session)
 
-    def __call__(self, event, user, dispatch_mapping):
+    def __call__(self, event, user, dispatch_mapping, delay=None):
         """Create and store a notification and a notification dispatch."""
 
         # Unpack.
@@ -157,11 +158,17 @@ class NotificationFactory(object):
         # Create notification.
         notification = self.notification_cls(user=user, event=event)
         session.add(notification)
+        due = datetime.datetime.now()
+
+        # Check if delay and add it.
+        if delay:
+            delay = relativedelta(hours=delay)
+            due = due + delay
 
         # Create notification dispatch for each channel.
         for k, v in dispatch_mapping.items():
             notification_dispatch = self.notification_dispatch_cls(notification=notification,
-                    due=datetime.datetime.now(), category=k, view=v['view'],
+                    due=due, category=k, view=v['view'],
                     single_spec=v['single'], batch_spec=v['batch'])
             session.add(notification_dispatch)
 
