@@ -159,6 +159,7 @@ class NotificationFactory(object):
         notification = self.notification_cls(user=user, event=event)
         session.add(notification)
         due = datetime.datetime.now()
+        email = user.best_email.address
 
         # Check if delay and add it.
         if delay:
@@ -169,7 +170,7 @@ class NotificationFactory(object):
         for k, v in dispatch_mapping.items():
             notification_dispatch = self.notification_dispatch_cls(notification=notification,
                     due=due, category=k, view=v['view'],
-                    single_spec=v['single'], batch_spec=v['batch'])
+                    single_spec=v['single'], batch_spec=v['batch'], address=email)
             session.add(notification_dispatch)
 
         # Save to the database.
