@@ -161,12 +161,26 @@ class NotificationFactory(object):
         due = datetime.datetime.now()
         email = user.best_email.address
 
-        # Check if delay and add it.
+        # Get the user profile preference.
+        timeframe = user.frequency
+
+        # If daily normalise to 20h of each day.
+        if timeframe == 'daily':
+            if due.hour > 20:
+                due = datetime.datetime(due.year, due.month, due.day + 1, 20)
+            else:
+                due = datetime.datetime(due.year, due.month, due.day, 20)
+
+        # If hourly normalise to the next hour.
+        elif timeframe == 'hourly':
+            due = datetime.datetime(due.year, due.month, due.day, due.hour + 1, 0)
+
+        # Check if there's a delay in minutes add to it.
         if delay:
-            delay = relativedelta(hours=delay)
+            delay = relativedelta(minutes=delay)
             due = due + delay
 
-        # Create notification dispatch for each channel.
+        # Create a notification dispatch for each channel.
         for k, v in dispatch_mapping.items():
             notification_dispatch = self.notification_dispatch_cls(notification=notification,
                     due=due, category=k, view=v['view'],
@@ -176,7 +190,7 @@ class NotificationFactory(object):
         # Save to the database.
         session.flush()
 
-        return notification, notification_dispatch
+        return notification
 
 class LookupNotificationDispatch(object):
     """Lookup notifications."""
