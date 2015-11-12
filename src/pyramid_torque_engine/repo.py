@@ -22,8 +22,7 @@ class DefaultJSONifier(object):
         self.request = request
 
     def __call__(self, instance):
-        system = {'request', self.request}
-        return render.dumps(instance, info=None, system=system)
+        return render.json_dumps(self.request, instance)
 
 class ActivityEventFactory(object):
     """Boilerplate to create and save ``ActivityEvent``s."""
