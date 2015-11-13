@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'pyramid_torque_engine',
-    version = '0.2.6',
+    version = '0.3.0',
     description = 'Pyramid and nTorque based dual queue work engine system.',
     author = 'James Arthur',
     author_email = 'username: thruflo, domain: gmail.com',
