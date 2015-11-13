@@ -153,7 +153,14 @@ class AddEngineSubscriber(object):
         discriminator = [key, context, operation, handler]
         discriminator.extend(events)
         discriminator.extend(kw.items())
-        config.action(tuple(discriminator), noop)
+        # Make it introspectable.
+        intr = config.introspectable(category_name='engine subscriber',
+                                     discriminator=tuple(discriminator),
+                                     title='An engine subscriber',
+                                     type_name=None)
+        intr['value'] = (context, events, operation)
+
+        config.action(tuple(discriminator), noop, introspectables=(intr,))
 
 class GetActivityEvent(object):
     """Request method to lookup ActivityEvent instance from the value in the

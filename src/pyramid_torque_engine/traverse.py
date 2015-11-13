@@ -64,7 +64,16 @@ def add_engine_resource(config, resource_cls, container_iface, query_spec=None):
     # Register the configuration action with a discriminator so that we
     # don't register the same class twice.
     discriminator = ('engine.traverse', tablename,)
-    config.action(discriminator, register)
+
+    # Make it introspectable.
+    intr = config.introspectable(category_name='engine resources',
+                                 discriminator=discriminator,
+                                 title='An engine resource',
+                                 type_name=None)
+    intr['value'] = resource_cls, container_iface
+
+    config.action(discriminator, register, introspectables=(intr,))
+
 
 def includeme(config, add_resource=None):
     """Provide the ``config.add_engine_resource`` directive."""

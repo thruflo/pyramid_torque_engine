@@ -92,7 +92,6 @@ class AddEngineTransition(object):
         # Register it for this context.
         key = 'engine.transition'
         discriminator = (key, context, operation, result)
-        config.action(discriminator, validate)
 
         # Instantiate a handler that knows the action to perform.
         handler = self.handler_cls(action)
@@ -104,6 +103,15 @@ class AddEngineTransition(object):
         config.add_view(handler, context=context, renderer='json',
                 request_method='POST', json_param=params,
                 route_name='results')
+
+        # Make it introspectable.
+        intr = config.introspectable(category_name='engine transition',
+                                     discriminator=discriminator,
+                                     title='An engine transition',
+                                     type_name=None)
+        intr['value'] = (context, operation, result, action)
+
+        config.action(discriminator, validate, introspectables=(intr,))
 
     def validate(self, registry, context, action):
         """Make sure that there's a registered ``action`` for the ``context``."""

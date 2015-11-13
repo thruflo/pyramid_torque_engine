@@ -149,7 +149,7 @@ class TestWorkEngineClient(unittest.TestCase):
 
         # Dispatch an update.
         client = self.makeOne()
-        return_value = client.result(mock_context, 'o:VERB', 'r:NOUN')
+        return_value = client.result(mock_context, 'o:VERB', 'r:NOUN', event_id=1)
 
         # The return value includes the status of the dispatch.
         status = return_value['status']

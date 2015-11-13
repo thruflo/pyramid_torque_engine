@@ -49,6 +49,7 @@ import fysom
 from collections import defaultdict
 
 from . import util
+from . import repo
 
 class StateChanger(object):
     """High level api to validate and perform state changes that uses the
@@ -76,6 +77,7 @@ class StateChanger(object):
         engine = self.engine
         machine = self.get_machine(context, action=action)
         current_state = machine.current
+        request = self.request
 
         # Prepare return value.
         next_state, has_changed, dispatched = None, False, []
@@ -100,7 +102,11 @@ class StateChanger(object):
         if next_state != current_state:
             has_changed = True
             context.set_work_status(next_state, event)
-            dispatched.append(engine.changed(context, event))
+            # Create a new activity event for the new state.
+            activity_event_factory = repo.ActivityEventFactory(request)
+            state_event = activity_event_factory(context, event.user, data=event.data)
+            # Broadcast the new event.
+            dispatched.append(engine.changed(context, state_event))
 
         # Either way, notify that the action has been performed.
         dispatched.append(engine.happened(context, action, event=event))
@@ -173,7 +179,14 @@ class AddEngineAction(object):
         # long as the from_states are unique.
         for state in from_states:
             discriminator = ('engine.action', context, action, state)
-            config.action(discriminator, lambda: self.register(registry, context))
+
+            # Make it introspectable.
+            intr = config.introspectable(category_name='engine action',
+                                         discriminator=discriminator,
+                                         title='An engine action',
+                                         type_name=None)
+            intr['value'] = (context, action, from_states, to_state)
+            config.action(discriminator, lambda: self.register(registry, context), introspectables=(intr,))
 
         # And with that queued up, immediately store the from and two states
         # in an action_rules dict.

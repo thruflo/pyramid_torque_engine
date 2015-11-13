@@ -7,12 +7,16 @@ logger = logging.getLogger(__name__)
 
 import json
 import fysom
+import transaction
+
+import pyramid_basemodel as bm
 
 from pyramid import config as pyramid_config
 
 from pyramid_torque_engine import constants
 from pyramid_torque_engine import operations as ops
 from pyramid_torque_engine import unpack
+from pyramid_torque_engine import repo
 a, o, r, s = unpack.constants()
 
 from . import boilerplate
@@ -100,9 +104,15 @@ class TestSubscriptions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Perform a state change.
         state_changer = request.state_changer
-        _, _, dispatched = state_changer.perform(context, a.START, None)
+        with transaction.manager:
+            bm.Session.add(event)
+            _, _, dispatched = state_changer.perform(context, a.START, event)
 
         # The s.STARTED event should trigger GO_FORTH and BEEP.
         handlers = get_handlers_for(dispatched, s.STARTED, names_only=True)
@@ -118,9 +128,15 @@ class TestSubscriptions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(cls=model.Foo)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Perform a state change.
         state_changer = request.state_changer
-        _, _, dispatched = state_changer.perform(context, a.START, None)
+        with transaction.manager:
+            bm.Session.add(event)
+            _, _, dispatched = state_changer.perform(context, a.START, event)
 
         # The s.STARTED event should trigger GO_FORTH *and* MULTIPLY.
         handlers = get_handlers_for(dispatched, s.STARTED, names_only=True)
@@ -137,9 +153,15 @@ class TestSubscriptions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Perform an action.
         state_changer = request.state_changer
-        _, _, dispatched = state_changer.perform(context, a.POKE, None)
+        with transaction.manager:
+            bm.Session.add(event)
+            _, _, dispatched = state_changer.perform(context, a.POKE, event)
 
         # The poke should trigger a beep.
         handlers = get_handlers_for(dispatched, a.POKE, names_only=True)
@@ -154,9 +176,15 @@ class TestSubscriptions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(cls=model.Foo)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Perform an action.
         state_changer = request.state_changer
-        _, _, dispatched = state_changer.perform(context, a.POKE, None)
+        with transaction.manager:
+            bm.Session.add(event)
+            _, _, dispatched = state_changer.perform(context, a.POKE, event)
 
         # The action should trigger lots of beeps.
         handlers = get_handlers_for(dispatched, a.POKE, names_only=True)
@@ -231,9 +259,15 @@ class TestTransitions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(initial_state=s.STARTED)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Reporting back success ...
         notify = request.torque.engine
-        dispatch = notify.result(context, o.DOIT, r.SUCCESS)
+        with transaction.manager:
+            bm.Session.add(event)
+            dispatch = notify.result(context, o.DOIT, r.SUCCESS, event=event)
 
         # ... triggers a finish.
         events = triggered_events(dispatch, 'action')
@@ -248,9 +282,15 @@ class TestTransitions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(initial_state=s.STARTED)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Reporting back failure ...
         notify = request.torque.engine
-        dispatch = notify.result(context, o.DOIT, r.FAILURE)
+        with transaction.manager:
+            bm.Session.add(event)
+            dispatch = notify.result(context, o.DOIT, r.FAILURE, event=event)
 
         # ... triggers a fail.
         events = triggered_events(dispatch, 'action')
@@ -265,9 +305,15 @@ class TestTransitions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(cls=model.Foo, initial_state=s.STARTED)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Reporting back failure ...
         notify = request.torque.engine
-        dispatch = notify.result(context, o.DOIT, r.FAILURE)
+        with transaction.manager:
+            bm.Session.add(event)
+            dispatch = notify.result(context, o.DOIT, r.FAILURE, event=event)
 
         # ... will result in a dispute.
         events = triggered_events(dispatch, 'action')
