@@ -276,6 +276,8 @@ class WorkEngineClient(object):
             data['event_id'] = event.id
         elif event_id:
             data['event_id'] = event_id
+        else:
+            raise Exception('You either need an event or an event_id.')
 
         logger.info((
             'torque.engine.result',
