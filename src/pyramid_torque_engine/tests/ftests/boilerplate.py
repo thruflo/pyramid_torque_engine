@@ -16,6 +16,8 @@ except ImportError:  # pragma: no cover
 
 import pyramid_basemodel as bm
 
+import transaction
+
 from cornice.tests import support
 from sqlalchemy import engine
 
@@ -26,6 +28,8 @@ from pyramid import testing
 from pyramid_torque_engine import action
 from pyramid_torque_engine import client
 from pyramid_torque_engine import traverse
+
+from pyramid_torque_engine import repo
 
 from . import settings
 
@@ -49,6 +53,23 @@ def make_wsgi_app(root_factory, includeme, registry=None, **settings):
 
     # Return a WSGI app.
     return config.make_wsgi_app()
+
+def createDummyEvent():
+    """Stubs an event."""
+    from pyramid_torque_engine.orm import ActivityEvent
+
+    class DummyResource(dict):
+
+        def __init__(self):
+            self.activity_events = None
+            self.dummy = 'cool'
+
+    with transaction.manager:
+        event = ActivityEvent(**{'type_': 'testing:created'})
+        bm.Session.add(event)
+        bm.Session.flush()
+        event_id = event.id
+    return event_id
 
 class StubRequest(object):
     """Provide `request.registry` and `request.environ`."""

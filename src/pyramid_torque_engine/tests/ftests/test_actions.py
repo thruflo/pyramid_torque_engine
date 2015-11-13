@@ -6,6 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 import fysom
+import transaction
+import pyramid_basemodel as bm
 
 from pyramid import config as pyramid_config
 
@@ -14,6 +16,8 @@ a, o, r, s = unpack.constants()
 
 from . import boilerplate
 from . import model
+
+from pyramid_torque_engine import repo
 
 class TestAllowedActions(boilerplate.AppTestCase):
     """Test ``allow(context, action, (from_states), to_state)`` rules."""
@@ -87,12 +91,20 @@ class TestAllowedActions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Check we're allowed.
         state_changer = request.state_changer
         self.assertTrue(state_changer.can_perform(context, a.START))
 
         # Perform the action.
-        _ = state_changer.perform(context, a.START, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            _ = state_changer.perform(context, a.START, event)
 
         # The context is now in the configured state.
         self.assertEqual(context.work_status.value, s.STARTED)
@@ -105,13 +117,19 @@ class TestAllowedActions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # First of all it's OK to perform the action in any state.
         state_changer = request.state_changer
-        state_changer.perform(context, a.POKE, None)
-        s1 = context.work_status.value
-        state_changer.perform(context, a.START, None)
-        state_changer.perform(context, a.POKE, None)
-        s2 = context.work_status.value
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.POKE, event)
+            s1 = context.work_status.value
+            state_changer.perform(context, a.START, event)
+            state_changer.perform(context, a.POKE, event)
+            s2 = context.work_status.value
 
         # And because it has a to state of Ellipsis, it stays in
         # whatever state its in.
@@ -119,7 +137,11 @@ class TestAllowedActions(boilerplate.AppTestCase):
         self.assertEqual(s2, s.STARTED)
 
         # Although an '*' from state can prescribe a to state too.
-        state_changer.perform(context, a.TRANSMOGRIFY, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.TRANSMOGRIFY, event)
         self.assertEqual(context.work_status.value, s.TRANSMOGRIFIED)
 
     def test_multiple_rules(self):
@@ -130,17 +152,33 @@ class TestAllowedActions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(initial_state=s.STARTED)
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Complete -> completed.
         state_changer = request.state_changer
-        state_changer.perform(context, a.COMPLETE, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.COMPLETE, event)
         self.assertEqual(context.work_status.value, s.COMPLETED)
 
         # Complete -> absolutely completed.
-        state_changer.perform(context, a.COMPLETE, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.COMPLETE, event)
         self.assertEqual(context.work_status.value, s.ABSOLUTELY_COMPLETED)
 
         # Complete -> ... the same state ...
-        state_changer.perform(context, a.COMPLETE, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.COMPLETE, event)
         self.assertEqual(context.work_status.value, s.ABSOLUTELY_COMPLETED)
 
     def test_multiple_states(self):
@@ -151,14 +189,26 @@ class TestAllowedActions(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Cancel when created.
         state_changer = request.state_changer
-        state_changer.perform(context, a.CANCEL, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.CANCEL, event)
         self.assertEqual(context.work_status.value, s.CANCELLED)
 
         # Cancel when started.
         c2 = model.factory(initial_state=s.STARTED)
-        state_changer.perform(c2, a.CANCEL, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(c2, a.CANCEL, event)
         self.assertEqual(context.work_status.value, s.CANCELLED)
 
 class TestConflictingActions(boilerplate.AppTestCase):
@@ -220,10 +270,20 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory()
 
+        # Create a dummy event and get it back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Draft -> publish -> s.PUBLISHED.
         state_changer = request.state_changer
-        state_changer.perform(context, a.DRAFT, None)
-        state_changer.perform(context, a.PUBLISH, None)
+
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.DRAFT, event)
+            bm.Session.add(event)
+            state_changer.perform(context, a.PUBLISH, event)
         self.assertEqual(context.work_status.value, s.PUBLISHED)
 
     def test_for_foo_with_moderation(self):
@@ -234,14 +294,27 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         request = self.getRequest(app)
         context = model.factory(cls=model.Foo)
 
+        # Create two dummy events and get them back.
+        event_id = boilerplate.createDummyEvent()
+        event = repo.LookupActivityEvent()(event_id)
+
         # Draft -> publish -> s.PENDING_MODERATION.
         state_changer = request.state_changer
-        state_changer.perform(context, a.DRAFT, None)
-        state_changer.perform(context, a.PUBLISH, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.DRAFT, event)
+            bm.Session.add(event)
+            state_changer.perform(context, a.PUBLISH, event)
         self.assertEqual(context.work_status.value, s.PENDING_MODERATION)
 
         # Approve -> s.PUBLISHED.
-        state_changer.perform(context, a.APPROVE, None)
+        # We have to use a transaction manager because perform creates
+        # a new event on state change.
+        with transaction.manager:
+            bm.Session.add(event)
+            state_changer.perform(context, a.APPROVE, event)
         self.assertEqual(context.work_status.value, s.PUBLISHED)
 
     def test_must_provide_interface(self):
