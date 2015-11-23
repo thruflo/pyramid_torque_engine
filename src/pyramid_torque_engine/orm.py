@@ -18,6 +18,7 @@ from datetime import datetime
 from sqlalchemy import event
 from sqlalchemy import orm
 from sqlalchemy import schema
+from sqlalchemy import sql
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext import associationproxy as proxy
@@ -361,7 +362,6 @@ class WorkStatusMixin(object):
         # Return the new status instance.
         return status
 
-
     def get_read_status(self, user_id):
         """Return the read status for a user"""
 
@@ -370,7 +370,6 @@ class WorkStatusMixin(object):
         query = query.filter_by(user_id=user_id)
         query = query.order_by(ReadStatus.created.desc())
         return query.first()
-
 
     def set_work_status(self, value, event=None, model_cls=WorkStatus):
         """Append a new work status to the entry list."""
@@ -395,7 +394,6 @@ class WorkStatusMixin(object):
         # Return the new status instance.
         return status
 
-
     def get_work_status(self, value=None, model_cls=WorkStatus):
         """Return the most recent work status, optionally filtered by value."""
 
@@ -406,7 +404,55 @@ class WorkStatusMixin(object):
         query = query.order_by(model_cls.created.desc())
         return query.first()
 
-
     @property
     def work_status(self):
         return self.get_work_status()
+
+    @classmethod
+    def status_query(cls, value_or_values, model_cls=WorkStatus):
+        """Returns a query for ``cls`` instances whose current work_status
+          value matches the ``value_or_values`` provided.
+
+          As you can see from the implementation, this is non-trivial, so
+          handy to have as a class method.
+
+          The solution was ported from http://stackoverflow.com/a/2111420
+        """
+
+        # Prepare by aliasing the work status class twice.
+        ws1 = orm.aliased(model_cls)
+        ws2 = orm.aliased(model_cls)
+
+        # And build a query for instances that have work statuses.
+        query = cls.query
+        query = query.join(ws1, ws1.association_id==cls.work_status_association_id)
+
+        # Now for the magic: use a left outer join to rule out work statuses
+        # that aren't current.
+        query = query.join(
+            ws2,
+            sql.and_(
+                ws2.association_id==cls.work_status_association_id,
+                sql.or_(
+                    # Created date can (in theory) be the same, so make sure
+                    # there's a winner by also falling back on id.
+                    ws1.created < ws2.created,
+                    sql.and_(
+                        ws1.created==ws2.created,
+                        ws1.id < ws2.id
+                    )
+                )
+            ),
+            isouter=True
+        )
+        query = query.filter(ws2.id==None)
+
+        # Before filtering for the status value or values.
+        if hasattr(value_or_values, '__iter__'):
+            values = value_or_values
+            clause = ws1.value.in_(values)
+        else:
+            value = value_or_values
+            clause = ws1.value==value
+        query = query.filter(clause)
+        return query
