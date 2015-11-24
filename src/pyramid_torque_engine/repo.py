@@ -33,6 +33,17 @@ class ActivityEventFactory(object):
         self.model_cls = kwargs.get('model_cls', orm.ActivityEvent)
         self.session = kwargs.get('session', bm.Session)
 
+    @staticmethod
+    def type_from_context_action(parent, action=None):
+        """Returns a formated type_."""
+
+        target = parent.singular_class_slug
+        if action is None:
+            action = parent.work_status.value
+        action_name = action.split(u':')[-1].lower()
+        type_ = u'{0}:{1}'.format(target, action_name)
+        return type_
+
     def save(self, instance):
         self.session.add(instance)
         self.session.flush()
@@ -63,22 +74,19 @@ class ActivityEventFactory(object):
         if data is None:
             data = {}
         if type_ is None:
-            target = parent.singular_class_slug
-            if action is None:
-                action = parent.work_status.value
-            action_name = action.split(u':')[-1].lower()
-            type_ = u'{0}:{1}'.format(target, action_name)
+            type_ = self.type_from_context_action(parent, action)
 
         # Add context snapshot to the event data.
         data['snapshot'] = self.snapshot(parent, user)
 
         # Return a saved instance.
-        return self.factory({
+        data = self.factory({
             'user': user,
             'parent': parent,
             'type_': type_,
             'data': data,
         })
+        return data
 
 class LookupActivityEvent(object):
     """Lookup activity events."""
