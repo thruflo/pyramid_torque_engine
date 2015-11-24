@@ -104,7 +104,13 @@ class StateChanger(object):
             context.set_work_status(next_state, event)
             # Create a new activity event for the new state.
             activity_event_factory = repo.ActivityEventFactory(request)
-            state_event = activity_event_factory(context, event.user, data=event.data)
+            state_event = activity_event_factory.factory({
+                'user': event.user,
+                'parent': event.parent,
+                'type_': activity_event_factory.type_from_context_action(event.parent),
+                'data': event.data
+            })
+
             # Broadcast the new event.
             dispatched.append(engine.changed(context, state_event))
 
