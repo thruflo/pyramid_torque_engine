@@ -12,6 +12,8 @@ __all__ = [
 import fysom
 import pyramid_basemodel as bm
 
+from . import repo
+
 def get_targets(context, attr):
     """Get context.attr as a list of targets.
 
@@ -95,13 +97,27 @@ class Perform(object):
         # For each target, validate and perform the action.
         all_dispatched = []
         action = self.action
+        session = bm.Session()
+        session.add(event)
+        user = event.user
+        data = event.data
         state_changer = request.state_changer
+        event_factory = repo.ActivityEventFactory(request)
         for target in targets:
             if state_changer.can_perform(target, action):
+                type_ = event_factory.type_from_context_action(target, action)
+                action_event = event_factory.factory({
+                    'user': user,
+                    'parent': target,
+                    'type_': type_,
+                    'data': data,
+                })
                 try:
-                    _, _, dispatched = state_changer.perform(target, action, event)
+                    _, _, dispatched = state_changer.perform(target, action,
+                            action_event)
                 except fysom.FysomError as err:
                     logger.warn(err)
+                all_dispatched.extend(dispatched)
         return {op: all_dispatched}
 
 class Result(object):

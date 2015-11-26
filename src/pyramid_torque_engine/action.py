@@ -101,7 +101,6 @@ class StateChanger(object):
         # activity event hung off it) and notify.
         if next_state != current_state:
             has_changed = True
-            context.set_work_status(next_state, event)
             # Create a new activity event for the new state.
             activity_event_factory = repo.ActivityEventFactory(request)
             state_event = activity_event_factory.factory({
@@ -110,7 +109,7 @@ class StateChanger(object):
                 'type_': activity_event_factory.type_from_context_action(event.parent),
                 'data': event.data
             })
-
+            context.set_work_status(next_state, state_event)
             # Broadcast the new event.
             dispatched.append(engine.changed(context, state_event))
 
