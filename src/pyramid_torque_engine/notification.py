@@ -68,6 +68,19 @@ def add_notification(config,
     on(iface, state_or_action_changes, o.CREATE_NOTIFICATION, dispatch)
 
 
+def add_roles_mapping(config, iface, mapping):
+    """Adds a roles mapping to the resource."""
+
+    # Unpack.
+    registry = config.registry
+
+    print registry
+
+
+def get_roles_mapping(config, iface):
+    """Gets the role mapping for the resource."""
+
+
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an
       ``add_engine_subscriber`` directive.
@@ -75,10 +88,14 @@ class IncludeMe(object):
 
     def __init__(self, **kwargs):
         self.add_notification = kwargs.get('add_notification', add_notification)
+        self.add_roles_mapping = kwargs.get('add_roles_mapping', add_roles_mapping)
+        self.get_roles_mapping = kwargs.get('get_roles_mapping', get_roles_mapping)
 
     def __call__(self, config):
         """Handle `/events` requests and provide subscription directive."""
 
-        config.add_directive('add_notification', add_notification)
+        config.add_directive('add_notification', self.add_notification)
+        config.add_directive('add_roles_mapping', self.add_roles_mapping)
+        config.add_directive('get_roles_mapping', self.get_roles_mapping)
 
 includeme = IncludeMe().__call__
