@@ -360,12 +360,7 @@ class Notification(bm.Base, bm.BaseMixin):
         ActivityEvent,
         backref=orm.backref(
             'notification',
-            lazy='joined',
-            single_parent=True,
-            uselist=False,
         ),
-        lazy='joined',
-        uselist=False,
     )
 
     def __json__(self, request=None):

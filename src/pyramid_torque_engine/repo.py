@@ -118,7 +118,7 @@ class LookupActivityEvent(object):
         query = query.filter_by(association_id=quote.activity_event_association_id)
         query = query.filter_by(message=data['message'])
         status_text = model_cls.__table__.c.data['status'].astext
-        query = query.filter(status_text==data['status'])
+        query = query.filter(status_text == data['status'])
         instance = query.first()
         if not instance:
             return None
@@ -163,10 +163,6 @@ class NotificationFactory(object):
 
         # Get the user profile preference.
         timeframe = user.profile.frequency
-
-        # Set a sane default for legacy users.
-        if not timeframe:
-            timeframe = 'hourly'
 
         # If daily normalise to 20h of each day.
         if timeframe == 'daily':

@@ -20,13 +20,14 @@ from pyramid_torque_engine import repo
 class AddNotification(object):
     """Standard boilerplate to add a notification."""
 
-    def __init__(self, iface=None, dispatch_mapping=None, delay=None):
+    def __init__(self, iface, role, dispatch_mapping, delay=None):
         """By default an operation called `o.DO_FOO` will dispatch to
           `/hooks/do_foo`.
         """
 
         self.dispatch_mapping = dispatch_mapping
         self.notification_factory = repo.NotificationFactory
+        self.role = role
         self.delay = delay
         self.iface = iface
 
@@ -35,21 +36,24 @@ class AddNotification(object):
           optionally augemented with extra data extracted by the ``pliers``.
         """
 
+
         # Unpack.
         dispatch_mapping = self.dispatch_mapping
         notification_factory = self.notification_factory(request)
         delay = self.delay
         iface = self.iface
+        role = self.role
 
         # get relevant information
         interested_users_func = get_roles_mapping(request, iface)
-        interested_users = interested_users_func(context)
-        for user in interested_users['users']:
-            notification = notification_factory(event, user, dispatch_mapping, delay)
+        interested_users = interested_users_func(request, context)
+        for user in interested_users[role]:
+            _ = notification_factory(event, user, dispatch_mapping, delay)
 
 
 def add_notification(config,
                      iface,
+                     role,
                      state_or_action_changes,
                      dispatch_mapping,
                      delay=None):
@@ -62,8 +66,8 @@ def add_notification(config,
         'CREATE_NOTIFICATION',
     )
 
-    dispatch = AddNotification(iface=iface, dispatch_mapping=dispatch_mapping, delay=delay)
-    on(iface, state_or_action_changes, o.CREATE_NOTIFICATION, dispatch)
+    create_notification_in_db = AddNotification(iface, role, dispatch_mapping, delay)
+    on(iface, state_or_action_changes, o.CREATE_NOTIFICATION, create_notification_in_db)
 
 
 def add_roles_mapping(config, iface, mapping):
@@ -90,6 +94,27 @@ def get_roles_mapping(request, iface):
 
     return roles_mapping.get(iface, None)
 
+def get_operator_user(request, registry=None):
+    """We have a special user in our db representing the operator user. Here
+      we look them up by username, constructed from the client id.
+      XXXXXX at the moment Andre is the operator user!!!1
+    """
+
+    if registry == None:
+        # Unpack.
+        settings = request.registry.settings
+    else:
+        settings = registry.settings
+
+    # Get the user.
+    from pyramid_simpleauth.model import get_existing_user
+    try:
+        username = u'aprado'
+    except KeyError:
+        username = None
+
+    return get_existing_user(username=username)
+
 
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an
@@ -108,5 +133,6 @@ class IncludeMe(object):
         config.registry.roles_mapping = {}
         config.add_directive('add_roles_mapping', self.add_roles_mapping)
         config.add_directive('get_roles_mapping', self.get_roles_mapping)
+        config.add_request_method(get_operator_user, 'operator_user', reify=True)
 
 includeme = IncludeMe().__call__
