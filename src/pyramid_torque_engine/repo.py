@@ -162,7 +162,11 @@ class NotificationFactory(object):
         email = user.best_email.address
 
         # Get the user profile preference.
-        timeframe = user.frequency
+        timeframe = user.profile.frequency
+
+        # Set a sane default for legacy users.
+        if not timeframe:
+            timeframe = 'hourly'
 
         # If daily normalise to 20h of each day.
         if timeframe == 'daily':
