@@ -92,18 +92,21 @@ class TestAllowedActions(boilerplate.AppTestCase):
         context = model.factory()
 
         # Create a dummy event and get it back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # Check we're allowed.
         state_changer = request.state_changer
-        self.assertTrue(state_changer.can_perform(context, a.START))
+        with transaction.manager:
+            bm.Session.add(context)
+            self.assertTrue(state_changer.can_perform(context, a.START))
 
         # Perform the action.
         # We have to use a transaction manager because perform creates
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             _ = state_changer.perform(context, a.START, event)
 
         # The context is now in the configured state.
@@ -118,13 +121,14 @@ class TestAllowedActions(boilerplate.AppTestCase):
         context = model.factory()
 
         # Create a dummy event and get it back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # First of all it's OK to perform the action in any state.
         state_changer = request.state_changer
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.POKE, event)
             s1 = context.work_status.value
             state_changer.perform(context, a.START, event)
@@ -153,7 +157,7 @@ class TestAllowedActions(boilerplate.AppTestCase):
         context = model.factory(initial_state=s.STARTED)
 
         # Create a dummy event and get it back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # Complete -> completed.
@@ -162,6 +166,7 @@ class TestAllowedActions(boilerplate.AppTestCase):
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.COMPLETE, event)
         self.assertEqual(context.work_status.value, s.COMPLETED)
 
@@ -190,7 +195,7 @@ class TestAllowedActions(boilerplate.AppTestCase):
         context = model.factory()
 
         # Create a dummy event and get it back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # Cancel when created.
@@ -199,6 +204,7 @@ class TestAllowedActions(boilerplate.AppTestCase):
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.CANCEL, event)
         self.assertEqual(context.work_status.value, s.CANCELLED)
 
@@ -271,7 +277,7 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         context = model.factory()
 
         # Create a dummy event and get it back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # Draft -> publish -> s.PUBLISHED.
@@ -281,8 +287,10 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.DRAFT, event)
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.PUBLISH, event)
         self.assertEqual(context.work_status.value, s.PUBLISHED)
 
@@ -295,7 +303,7 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         context = model.factory(cls=model.Foo)
 
         # Create two dummy events and get them back.
-        event_id = boilerplate.createDummyEvent()
+        event_id = boilerplate.createEvent(context)
         event = repo.LookupActivityEvent()(event_id)
 
         # Draft -> publish -> s.PENDING_MODERATION.
@@ -304,8 +312,10 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.DRAFT, event)
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.PUBLISH, event)
         self.assertEqual(context.work_status.value, s.PENDING_MODERATION)
 

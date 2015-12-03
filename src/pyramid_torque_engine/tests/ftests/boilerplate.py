@@ -54,18 +54,14 @@ def make_wsgi_app(root_factory, includeme, registry=None, **settings):
     # Return a WSGI app.
     return config.make_wsgi_app()
 
-def createDummyEvent():
+def createEvent(context=None):
     """Stubs an event."""
-    from pyramid_torque_engine.orm import ActivityEvent
-
-    class DummyResource(dict):
-
-        def __init__(self):
-            self.activity_events = None
-            self.dummy = 'cool'
+    from pyramid_torque_engine.repo import ActivityEventFactory
+    from mock import Mock
 
     with transaction.manager:
-        event = ActivityEvent(**{'type_': 'testing:created'})
+        bm.Session.add(context)
+        event = ActivityEventFactory(Mock())(context, None)
         bm.Session.add(event)
         bm.Session.flush()
         event_id = event.id
