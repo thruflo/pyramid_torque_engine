@@ -130,8 +130,14 @@ class TestAllowedActions(boilerplate.AppTestCase):
             bm.Session.add(event)
             bm.Session.add(context)
             state_changer.perform(context, a.POKE, event)
+
+            bm.Session.add(event)
+            bm.Session.add(context)
             s1 = context.work_status.value
             state_changer.perform(context, a.START, event)
+
+            bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.POKE, event)
             s2 = context.work_status.value
 
