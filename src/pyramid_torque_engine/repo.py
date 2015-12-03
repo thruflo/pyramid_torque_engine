@@ -5,6 +5,8 @@
 __all__ = [
     'ActivityEventFactory',
     'LookupActivityEvent',
+    'NotificationFactory',
+    'LookupNotification',
 ]
 
 import logging
@@ -16,6 +18,9 @@ import pyramid_basemodel as bm
 from . import orm
 from . import render
 from . import util
+
+import datetime
+from dateutil.relativedelta import relativedelta
 
 class DefaultJSONifier(object):
     def __init__(self, request):
@@ -113,7 +118,7 @@ class LookupActivityEvent(object):
         query = query.filter_by(association_id=quote.activity_event_association_id)
         query = query.filter_by(message=data['message'])
         status_text = model_cls.__table__.c.data['status'].astext
-        query = query.filter(status_text==data['status'])
+        query = query.filter(status_text == data['status'])
         instance = query.first()
         if not instance:
             return None
@@ -132,3 +137,68 @@ class LookupActivityEvent(object):
 
         # Ok, we got a match.
         return instance
+
+class NotificationFactory(object):
+    """Boilerplate to create and save ``Notification``s."""
+
+    def __init__(self, request, **kwargs):
+        self.request = request
+        self.jsonify = kwargs.get('jsonify', DefaultJSONifier(request))
+        self.notification_cls = kwargs.get('notification_cls', orm.Notification)
+        self.notification_dispatch_cls = kwargs.get('notification_dispatch_cls',
+                orm.NotificationDispatch)
+        self.session = kwargs.get('session', bm.Session)
+
+    def __call__(self, event, user, dispatch_mapping, delay=None):
+        """Create and store a notification and a notification dispatch."""
+
+        # Unpack.
+        session = self.session
+
+        # Create notification.
+        notification = self.notification_cls(user=user, event=event)
+        session.add(notification)
+        due = datetime.datetime.now()
+        email = user.best_email.address
+
+        # Get the user profile preference.
+        timeframe = user.profile.frequency
+
+        # If daily normalise to 20h of each day.
+        if timeframe == 'daily':
+            if due.hour > 20:
+                due = datetime.datetime(due.year, due.month, due.day + 1, 20)
+            else:
+                due = datetime.datetime(due.year, due.month, due.day, 20)
+
+        # If hourly normalise to the next hour.
+        elif timeframe == 'hourly':
+            due = datetime.datetime(due.year, due.month, due.day, due.hour + 1, 0)
+
+        # Check if there's a delay in minutes add to it.
+        if delay:
+            delay = relativedelta(minutes=delay)
+            due = due + delay
+
+        # Create a notification dispatch for each channel.
+        for k, v in dispatch_mapping.items():
+            notification_dispatch = self.notification_dispatch_cls(notification=notification,
+                    due=due, category=k, view=v['view'],
+                    single_spec=v['single'], batch_spec=v['batch'], address=email)
+            session.add(notification_dispatch)
+
+        # Save to the database.
+        session.flush()
+
+        return notification
+
+class LookupNotificationDispatch(object):
+    """Lookup notifications."""
+
+    def __init__(self, **kwargs):
+        self.model_cls = kwargs.get('model_cls', orm.NotificationDispatch)
+
+    def __call__(self, id_):
+        """Lookup by ID."""
+
+        return self.model_cls.query.get(id_)

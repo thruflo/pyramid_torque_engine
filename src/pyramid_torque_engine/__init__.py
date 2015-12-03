@@ -73,6 +73,10 @@ class IncludeMe(object):
         # instance id conatiner based traversal for a given ORM class.
         config.include('pyramid_torque_engine.traverse')
 
+        # Provide the ``config.add_notification`` directive to enable
+        # notifications to be added.
+        config.include('pyramid_torque_engine.notification')
+
         # Provide the `request.torque` client API.
         config.include('pyramid_torque_engine.client')
 
