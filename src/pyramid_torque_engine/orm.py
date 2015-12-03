@@ -297,6 +297,55 @@ class WorkStatusMixin(object):
     def work_status(self):
         return self.get_work_status()
 
+    @classmethod
+    def status_query(cls, value_or_values, model_cls=WorkStatus):
+        """Returns a query for ``cls`` instances whose current work_status
+          value matches the ``value_or_values`` provided.
+
+          As you can see from the implementation, this is non-trivial, so
+          handy to have as a class method.
+
+          The solution was ported from http://stackoverflow.com/a/2111420
+        """
+
+        # Prepare by aliasing the work status class twice.
+        ws1 = orm.aliased(model_cls)
+        ws2 = orm.aliased(model_cls)
+
+        # And build a query for instances that have work statuses.
+        query = cls.query
+        query = query.join(ws1, ws1.association_id==cls.work_status_association_id)
+
+        # Now for the magic: use a left outer join to rule out work statuses
+        # that aren't current.
+        query = query.join(
+            ws2,
+            sql.and_(
+                ws2.association_id==cls.work_status_association_id,
+                sql.or_(
+                    # Created date can (in theory) be the same, so make sure
+                    # there's a winner by also falling back on id.
+                    ws1.created < ws2.created,
+                    sql.and_(
+                        ws1.created==ws2.created,
+                        ws1.id < ws2.id
+                    )
+                )
+            ),
+            isouter=True
+        )
+        query = query.filter(ws2.id==None)
+
+        # Before filtering for the status value or values.
+        if hasattr(value_or_values, '__iter__'):
+            values = value_or_values
+            clause = ws1.value.in_(values)
+        else:
+            value = value_or_values
+            clause = ws1.value==value
+        query = query.filter(clause)
+        return query
+
 class NotificationDispatch(bm.Base, bm.BaseMixin):
     """A notification dispatch to an user, holds information about how to deliver
     and when."""
