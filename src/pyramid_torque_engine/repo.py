@@ -8,6 +8,7 @@ __all__ = [
     'NotificationFactory',
     'LookupNotification',
     'LookupNotificationDispatch',
+    'NotificationPreferencesFactory',
 ]
 
 import logging
@@ -203,3 +204,27 @@ class LookupNotificationDispatch(object):
         """Lookup by ID."""
 
         return self.model_cls.query.get(id_)
+
+class NotificationPreferencesFactory(object):
+    """Boilerplate to create and save ``Notification preference``s."""
+
+    def __init__(self, **kwargs):
+        self.notification_preference_cls = kwargs.get('notification_preference_cls',
+                orm.NotificationPreference)
+        self.session = kwargs.get('session', bm.Session)
+
+    def __call__(self, user_id, frequency=None, channel='email'):
+        """Create and store a notification and a notification dispatch."""
+
+        # Unpack.
+        session = self.session
+
+        # Create notification.
+        notification_preference = self.notification_preference(
+                user_id=user_id, frequency=frequency, channel=channel)
+
+        # Save to the database.
+        session.add(notification_preference)
+        session.flush()
+
+        return notification_preference

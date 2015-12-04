@@ -423,3 +423,27 @@ class Notification(bm.Base, bm.BaseMixin):
             'event_id': self.event_id,
         }
         return data
+
+class NotificationPreference(bm.Base, bm.BaseMixin):
+    """Encapsulate user's notification preferences."""
+
+    __tablename__ = 'notification_preferences'
+
+    # Belongs to a user.
+    user_id = schema.Column(types.Integer, schema.ForeignKey('auth_users.id'))
+    user = orm.relationship(simpleauth_model.User, single_parent=True,
+            backref=orm.backref('notification_preference', single_parent=True, uselist=False))
+
+    # Optional notification preferences.
+    # simple for the moment, either sms or email text. XXX use ENUM.
+    channel = schema.Column(types.Unicode(96))
+    # simple for the moment, either daily or weekly. XXX use ENUM.
+    frequency = schema.Column(types.Unicode(96))
+
+    def __json__(self, request=None):
+        return {
+            'id': self.id,
+            'frequency': self.frequency,
+            'channel': self.channel,
+            'user_id': self.user_id,
+        }

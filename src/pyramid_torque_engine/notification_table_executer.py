@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from pyramid_torque_engine import orm
+from pyramid_torque_engine import repo
 
 from sqlalchemy import create_engine
 from pyramid_basemodel import bind_engine, save, Session
-from fabbed.model.orm.user import UserProfile
 
 import os
 import datetime
@@ -43,12 +43,11 @@ def run():
     engine = create_engine(os.environ['DATABASE_URL'])
     bind_engine(engine, should_create=False)
 
-    # Get ORM classes.
+    # Prepare.
     notification_cls = orm.Notification
     notification_dispatch_cls = orm.NotificationDispatch
+    notification_preference_factory = repo.NotificationPreferencesFactory()
     now = datetime.datetime.now()
-
-    print 'running'
 
     # Run the algorithm.
     with transaction.manager:
@@ -61,18 +60,18 @@ def run():
         for dispatch in due_to_dispatch.all():
             user_ids_to_dispatch.add(dispatch.notification.user_id)
 
-        # reutilise this function and run through it every x mins
         # also use it when a new notification is created so it's sent straightaway
 
         # check for transient internet errors
-        # config maybe dotted path
-        # create an user notification preference table
         # tests in pyramid torque engine
 
         # 3. for each user id get all of the notifications grouped by channel
         for user_id in user_ids_to_dispatch:
-            # Build the UserProfile object so we can get the preferences.
-            user = UserProfile.query.filter_by(user_id=user_id).one()
+            # Build the NotificationPreference object so we can get the preferences.
+            user = orm.NotificationPreference.query.filter_by(user_id=user_id).one()
+            # If we don't have a notification preference object, we just create it on the fly.
+            if user is None:
+                user = notification_preference_factory(user_id)
             user_notifications = due_to_dispatch.filter(notification_cls.user_id == user_id).all()
             dispatch_user_notifications(user, user_notifications)
 
