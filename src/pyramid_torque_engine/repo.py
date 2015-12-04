@@ -7,6 +7,7 @@ __all__ = [
     'LookupActivityEvent',
     'NotificationFactory',
     'LookupNotification',
+    'LookupNotificationDispatch',
 ]
 
 import logging

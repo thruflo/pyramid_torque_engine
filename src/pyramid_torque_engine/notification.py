@@ -12,10 +12,68 @@ from pyramid_torque_engine import operations as ops
 
 from pyramid_torque_engine import repo
 
-# XXX specs big object with all possible actions and look up by action
-# 'view': 'dotted.path' -> dotted path function adapter renders specs
-# due date has to be aware of when the weekly thingy goes out set to that
+import colander
 
+from pyramid import path
+
+
+def notification_email_single_view(request):
+    """View to handle a single email notification dispatch"""
+
+    class SingleNotificationSchema(colander.Schema):
+        notification_dispatch_id = colander.SchemaNode(
+            colander.Integer(),
+        )
+
+    lookup = repo.LookupNotificationDispatch()
+    dotted_name_resolver = path.DottedNameResolver()
+    schema = SingleNotificationSchema()
+
+    # Decode JSON.
+    try:
+        json = request.json
+    except ValueError as err:
+        request.response.status_int = 400
+        return {'JSON error': str(err)}
+
+    # Validate.
+    try:
+        appstruct = schema.deserialize(json)
+    except colander.Invalid as err:
+        request.response.status_int = 400
+        return {'error': err.asdict()}
+
+    # Get data out of JSON.
+    notification_dispatch_id = appstruct['notification_dispatch_id']
+
+    # Get our notification.
+    notification_dispatch = lookup(notification_dispatch_id)
+    if not notification_dispatch:
+        request.response.status_int = 404
+        return {'error': u'Not Found.'}
+
+    # Get our spec.
+    spec = notification_dispatch.single_spec
+
+    # Get our Address to send to.
+    send_to = notification_dispatch.address
+
+    # Get our view to render the spec.
+    view = dotted_name_resolver.resolve(notification_dispatch.view)
+
+    # Get the context.
+    context = notification_dispatch.notification.event.parent
+
+    # Send the email.
+    view(request, context, spec, send_to)
+
+    # Return 200.
+    return {'dispatched': 'ok'}
+
+
+def notification_email_batch_view(request):
+    """View to handle a batch email notification dispatch"""
+    pass
 
 class AddNotification(object):
     """Standard boilerplate to add a notification."""
@@ -129,10 +187,23 @@ class IncludeMe(object):
     def __call__(self, config):
         """Handle `/events` requests and provide subscription directive."""
 
+        # Adds a notification to the resource.
         config.add_directive('add_notification', self.add_notification)
         config.registry.roles_mapping = {}
+        # Adds / gets role mapping.
         config.add_directive('add_roles_mapping', self.add_roles_mapping)
         config.add_directive('get_roles_mapping', self.get_roles_mapping)
+        # Operator user to receive admin related emails.
         config.add_request_method(get_operator_user, 'operator_user', reify=True)
+        # Expose webhook views to notifications such as single / batch emails / sms's.
+        config.add_route('notification_email_single', '/notifications/email_single')
+        config.add_view(notification_email_single_view, renderer='json',
+                request_method='POST', route_name='notification_email_single')
+        config.add_route('notification_email_batch', '/notifications/email_batch')
+        config.add_view(notification_email_batch_view, renderer='json',
+                request_method='POST', route_name='notification_email_batch')
+
+
+
 
 includeme = IncludeMe().__call__

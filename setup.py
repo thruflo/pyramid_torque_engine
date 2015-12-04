@@ -38,5 +38,10 @@ setup(
         'coverage',
         'nose',
         'mock'
-    ]
+    ],
+    entry_points = {
+        'console_scripts': [
+            'engine_notification = pyramid_torque_engine.notification_table_executer:run'
+        ]
+    }
 )
