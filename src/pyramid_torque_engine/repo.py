@@ -149,6 +149,8 @@ class NotificationFactory(object):
         self.notification_cls = kwargs.get('notification_cls', orm.Notification)
         self.notification_dispatch_cls = kwargs.get('notification_dispatch_cls',
                 orm.NotificationDispatch)
+        self.notification_preference_factory = kwargs.get('notification_preference_factory',
+                NotificationPreferencesFactory())
         self.session = kwargs.get('session', bm.Session)
 
     def __call__(self, event, user, dispatch_mapping, delay=None):
@@ -163,8 +165,12 @@ class NotificationFactory(object):
         due = datetime.datetime.now()
         email = user.best_email.address
 
-        # Get the user profile preference.
-        timeframe = user.profile.frequency
+        # Get the user notification_preference, if we don't have it, create it..
+        if user.notification_preference:
+            timeframe = user.notification_preference.frequency
+        else:
+            preference = self.notification_preference_factory(user.id)
+            timeframe = preference.frequency
 
         # If daily normalise to 20h of each day.
         if timeframe == 'daily':
@@ -220,7 +226,7 @@ class NotificationPreferencesFactory(object):
         session = self.session
 
         # Create notification.
-        notification_preference = self.notification_preference(
+        notification_preference = self.notification_preference_cls(
                 user_id=user_id, frequency=frequency, channel=channel)
 
         # Save to the database.
