@@ -201,15 +201,21 @@ class NotificationFactory(object):
         return notification
 
 class LookupNotificationDispatch(object):
-    """Lookup notifications."""
+    """Lookup notifications dispatch."""
 
     def __init__(self, **kwargs):
         self.model_cls = kwargs.get('model_cls', orm.NotificationDispatch)
 
     def __call__(self, id_):
-        """Lookup by ID."""
+        """Lookup by notifiction dispatch id."""
 
         return self.model_cls.query.get(id_)
+
+    def by_notification_id(self, id_, type=u'email'):
+        """Lookup all notification dispatches that belong to
+        the notification id and type."""
+
+        return self.model_cls.query.filter_by(notification_id=id_).all()
 
 class NotificationPreferencesFactory(object):
     """Boilerplate to create and save ``Notification preference``s."""
