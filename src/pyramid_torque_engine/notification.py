@@ -11,21 +11,44 @@ from pyramid_torque_engine import unpack
 from pyramid_torque_engine import operations as ops
 
 from pyramid_torque_engine import repo
-
 from pyramid import path
 
 import colander
 import notification_table_executer
+import datetime
+import pyramid_basemodel as bm
+import requests
+import json
 
 
-def notification_dispatcher_view(request):
-    """The notification dispatcher runs every 10 minutes as a CRON job
-    however if you just added a notification and you want to dispatch it
-    straight away, just POST to this view with the user id and the
-    notification dispatch ids."""
+def send_email_from_notification_dispatch(request, notification_dispatch_id):
+    """Boilerplate to extract information from the notification
+    dispatch and send an email.
+    """
 
-    # Just run it for now.
-    notification_table_executer.run()
+    lookup = repo.LookupNotificationDispatch()
+    dotted_name_resolver = path.DottedNameResolver()
+
+    notification_dispatch = lookup(notification_dispatch_id)
+    if not notification_dispatch:
+        return False
+
+    # Get our spec.
+    spec = notification_dispatch.single_spec
+
+    # Get our Address to send to.
+    send_to = notification_dispatch.address
+
+    # Get our view to render the spec.
+    view = dotted_name_resolver.resolve(notification_dispatch.view)
+
+    # Get the context.
+    context = notification_dispatch.notification.event.parent
+
+    # Send the email.
+    view(request, context, spec, send_to)
+
+    return True
 
 
 def notification_email_single_view(request):
@@ -36,8 +59,6 @@ def notification_email_single_view(request):
             colander.Integer(),
         )
 
-    lookup = repo.LookupNotificationDispatch()
-    dotted_name_resolver = path.DottedNameResolver()
     schema = SingleNotificationSchema()
 
     # Decode JSON.
@@ -57,26 +78,11 @@ def notification_email_single_view(request):
     # Get data out of JSON.
     notification_dispatch_id = appstruct['notification_dispatch_id']
 
-    # Get our notification.
-    notification_dispatch = lookup(notification_dispatch_id)
-    if not notification_dispatch:
-        request.response.status_int = 404
-        return {'error': u'Not Found.'}
-
-    # Get our spec.
-    spec = notification_dispatch.single_spec
-
-    # Get our Address to send to.
-    send_to = notification_dispatch.address
-
-    # Get our view to render the spec.
-    view = dotted_name_resolver.resolve(notification_dispatch.view)
-
-    # Get the context.
-    context = notification_dispatch.notification.event.parent
-
     # Send the email.
-    view(request, context, spec, send_to)
+    r = send_email_from_notification_dispatch(request, notification_dispatch_id)
+    if not r:
+        request.response.status_int = 404
+        return {'error': u'Notification dispatch not Found.'}
 
     # Return 200.
     return {'dispatched': 'ok'}
@@ -91,9 +97,7 @@ class AddNotification(object):
     """Standard boilerplate to add a notification."""
 
     def __init__(self, iface, role, dispatch_mapping, delay=None):
-        """By default an operation called `o.DO_FOO` will dispatch to
-          `/hooks/do_foo`.
-        """
+        """"""
 
         self.dispatch_mapping = dispatch_mapping
         self.notification_factory = repo.NotificationFactory
@@ -102,10 +106,7 @@ class AddNotification(object):
         self.iface = iface
 
     def __call__(self, request, context, event, op, **kwargs):
-        """Dispatch a task to the hook by path, with a standard set of data
-          optionally augemented with extra data extracted by the ``pliers``.
-        """
-
+        """"""
 
         # Unpack.
         dispatch_mapping = self.dispatch_mapping
