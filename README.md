@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/andrecp/pyramid_torque_engine.svg?branch=master)](https://travis-ci.org/andrecp/pyramid_torque_engine)
 
 # Pyramid Torque Engine
 
