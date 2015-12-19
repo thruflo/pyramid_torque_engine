@@ -115,14 +115,18 @@ class AddNotification(object):
         iface = self.iface
         role = self.role
 
+        # Prepare.
+        notifications = []
+
         # get relevant information.
         interested_users_func = get_roles_mapping(request, iface)
         interested_users = interested_users_func(request, context)
         for user in interested_users[role]:
-            _ = notification_factory(event, user, dispatch_mapping, delay)
+            notification = notification_factory(event, user, dispatch_mapping, delay)
+            notifications.append(notification)
 
-        # Trigger a run over the notification dispatcher as we have new notifications.
-        request.dispatch_notification()
+        # Tries to optimistically send the notification.
+        dispatch_notifications(request, notifications)
 
 
 def add_notification(config,
@@ -191,17 +195,18 @@ def get_operator_user(request, registry=None):
     return get_existing_user(username=username)
 
 
-def dispatch_notification(request, data=None, path=None):
-    """Dispatches a notification so that the dispatcher runs."""
+def dispatch_notifications(request, notifications):
+    """Dispatches a notification directly without waiting for the
+    background process."""
 
-    # Compose.
-    if path is None:
-        path = 'localhost:5100/engine/notifications/dispatch'
-    if data is None:
-        data = {}
+    lookup = repo.LookupNotificationDispatch()
 
-    return request.torque.dispatch(path, data)
-
+    for notification in notifications:
+        for dispatch in lookup.by_notification_id(notification.id):
+            r = send_email_from_notification_dispatch(request, dispatch.id)
+            if r:
+                dispatch.sent = datetime.datetime.now()
+                bm.save(dispatch)
 
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an
@@ -216,6 +221,15 @@ class IncludeMe(object):
     def __call__(self, config):
         """Handle `/events` requests and provide subscription directive."""
 
+        # XXX Add apps needed to send an email.
+        config.include('pyramid_mako')
+        config.include('pyramid_postmark')
+        config.include('fabbed.urls')
+
+
+        # Dispatch the notifications.
+        config.add_request_method(dispatch_notifications, 'dispatch_notifications', reify=True)
+
         # Adds a notification to the resource.
         config.add_directive('add_notification', self.add_notification)
         config.registry.roles_mapping = {}
@@ -226,14 +240,6 @@ class IncludeMe(object):
 
         # Operator user to receive admin related emails.
         config.add_request_method(get_operator_user, 'operator_user', reify=True)
-
-        # Expose webhook view to run the notification system on "trigger mode".
-        config.add_route('notification_dispatcher', '/notifications/dispatch')
-        config.add_view(notification_dispatcher_view, renderer='json',
-                request_method='POST', route_name='notification_dispatcher')
-
-        # Dispatcher to simply calling the notification dispatcher view.
-        config.add_request_method(dispatch_notification, 'dispatch_notification', reify=True)
 
         # Expose webhook views to notifications such as single / batch emails / sms's.
         config.add_route('notification_email_single', '/notifications/email_single')
