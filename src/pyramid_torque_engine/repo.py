@@ -9,6 +9,7 @@ __all__ = [
     'LookupNotification',
     'LookupNotificationDispatch',
     'NotificationPreferencesFactory',
+    'get_or_create_notification_preferences',
 ]
 
 import logging
@@ -216,6 +217,15 @@ class LookupNotificationDispatch(object):
         the notification id and type."""
 
         return self.model_cls.query.filter_by(notification_id=id_).all()
+
+def get_or_create_notification_preferences(user):
+    """Gets or creates the notification preferences for the user."""
+    notification_preference_factory = NotificationPreferencesFactory()
+    preference = user.notification_preference
+    if preference is None:
+        preference = notification_preference_factory(user.id)
+    return preference
+
 
 class NotificationPreferencesFactory(object):
     """Boilerplate to create and save ``Notification preference``s."""

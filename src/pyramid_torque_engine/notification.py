@@ -206,16 +206,12 @@ def dispatch_notifications(request, notifications):
     background process."""
 
     lookup = repo.LookupNotificationDispatch()
-    notification_preference_factory = repo.NotificationPreferencesFactory()
     now = datetime.now.now()
 
     # Loop through the notifications and check if we should send them.
     for notification in notifications:
-        user = notification.user
         # Get our create the user preferences.
-        preference = user.notification_preference
-        if preference is None:
-            preference = notification_preference_factory(user.id)
+        preference = repo.get_or_create_notification_preferences(notification.user)
         # Check if its an email and if its due to dispatch, if so, dispatch.
         if preference == 'email':
             for dispatch in lookup.by_notification_id(notification.id):
