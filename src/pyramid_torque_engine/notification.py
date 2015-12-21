@@ -232,12 +232,6 @@ class IncludeMe(object):
     def __call__(self, config):
         """Handle `/events` requests and provide subscription directive."""
 
-        # XXX Add apps needed to send an email.
-        config.include('pyramid_mako')
-        config.include('pyramid_postmark')
-        config.include('fabbed.urls')
-
-
         # Dispatch the notifications.
         config.add_request_method(dispatch_notifications, 'dispatch_notifications', reify=True)
 
