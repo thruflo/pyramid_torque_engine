@@ -50,6 +50,10 @@ def send_email_from_notification_dispatch(request, notification_dispatch_id):
     # Send the email.
     view(request, context, spec, send_to)
 
+    # Set the sent info in our db.
+    notification_dispatch.sent = datetime.datetime.now()
+    bm.save(notification_dispatch)
+
     return True
 
 
@@ -216,10 +220,8 @@ def dispatch_notifications(request, notifications):
         if preference == 'email':
             for dispatch in lookup.by_notification_id(notification.id):
                 if dispatch.due <= now:
-                    r = send_email_from_notification_dispatch(request, dispatch.id)
-                    if r:
-                        dispatch.sent = datetime.datetime.now()
-                        bm.save(dispatch)
+                    send_email_from_notification_dispatch(request, dispatch.id)
+
 
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an

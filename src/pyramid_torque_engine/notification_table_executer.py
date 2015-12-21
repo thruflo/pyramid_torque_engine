@@ -25,10 +25,6 @@ def dispatch_user_notifications(user, user_notifications):
         if len(to_dispatch) == 1:
             dispatch = to_dispatch[0]
             r = requests.post('http://127.0.0.1:5100/hooks/email_single_notification', data=json.dumps({'notification_dispatch_id': dispatch.id}))
-            # if sent successfuly...
-            if r.status_code < 300:
-                dispatch.sent = datetime.datetime.now()
-                save(dispatch)
         elif len(to_dispatch) > 1:
             # if sent successfuly...
             d.sent = datetime.datetime.now()
