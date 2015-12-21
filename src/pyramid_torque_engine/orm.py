@@ -9,6 +9,7 @@ __all__ = [
     'ActivityEvent',
     'Notification',
     'NotificationDispatch',
+    'NotificationPreference',
     'WorkStatus',
     'WorkStatusMixin',
 ]

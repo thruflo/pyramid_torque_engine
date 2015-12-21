@@ -24,6 +24,8 @@ import json
 def send_email_from_notification_dispatch(request, notification_dispatch_id):
     """Boilerplate to extract information from the notification
     dispatch and send an email.
+    Please note that no verification if it should
+    be sent is made prior to sending.
     """
 
     lookup = repo.LookupNotificationDispatch()
@@ -200,13 +202,24 @@ def dispatch_notifications(request, notifications):
     background process."""
 
     lookup = repo.LookupNotificationDispatch()
+    notification_preference_factory = repo.NotificationPreferencesFactory()
+    now = datetime.now.now()
 
+    # Loop through the notifications and check if we should send them.
     for notification in notifications:
-        for dispatch in lookup.by_notification_id(notification.id):
-            r = send_email_from_notification_dispatch(request, dispatch.id)
-            if r:
-                dispatch.sent = datetime.datetime.now()
-                bm.save(dispatch)
+        user = notification.user
+        # Get our create the user preferences.
+        preference = user.notification_preference
+        if preference is None:
+            preference = notification_preference_factory(user.id)
+        # Check if its an email and if its due to dispatch, if so, dispatch.
+        if preference == 'email':
+            for dispatch in lookup.by_notification_id(notification.id):
+                if dispatch.due <= now:
+                    r = send_email_from_notification_dispatch(request, dispatch.id)
+                    if r:
+                        dispatch.sent = datetime.datetime.now()
+                        bm.save(dispatch)
 
 class IncludeMe(object):
     """Set up the state change event subscription system and provide an
