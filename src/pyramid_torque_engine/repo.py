@@ -166,12 +166,9 @@ class NotificationFactory(object):
         due = datetime.datetime.now()
         email = user.best_email.address
 
-        # Get the user notification_preference, if we don't have it, create it..
-        if user.notification_preference:
-            timeframe = user.notification_preference.frequency
-        else:
-            preference = self.notification_preference_factory(user.id)
-            timeframe = preference.frequency
+        # Get or create user preferences.
+        preference = get_or_create_notification_preferences(user)
+        timeframe = preference.frequency
 
         # If daily normalise to 20h of each day.
         if timeframe == 'daily':

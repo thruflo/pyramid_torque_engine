@@ -56,8 +56,6 @@ def run():
         for dispatch in due_to_dispatch.all():
             user_ids_to_dispatch.add(dispatch.notification.user_id)
 
-        # also use it when a new notification is created so it's sent straightaway
-
         # check for transient internet errors
         # tests in pyramid torque engine
 
