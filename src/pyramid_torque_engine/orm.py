@@ -20,6 +20,7 @@ from datetime import datetime
 from sqlalchemy import event
 from sqlalchemy import orm
 from sqlalchemy import schema
+from sqlalchemy import sql
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext import associationproxy as proxy
