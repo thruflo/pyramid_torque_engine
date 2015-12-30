@@ -299,7 +299,7 @@ class WorkStatusMixin(object):
         return self.get_work_status()
 
     @classmethod
-    def status_query(cls, value_or_values, model_cls=WorkStatus):
+    def status_query(cls, value_or_values, negate=False, model_cls=WorkStatus):
         """Returns a query for ``cls`` instances whose current work_status
           value matches the ``value_or_values`` provided.
 
@@ -344,6 +344,8 @@ class WorkStatusMixin(object):
         else:
             value = value_or_values
             clause = ws1.value==value
+        if negate:
+            clause = ~clause
         query = query.filter(clause)
         return query
 
