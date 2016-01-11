@@ -9,6 +9,9 @@ __all__ = [
     'get_targets',
 ]
 
+import logging
+logger = logging.getLogger(__name__)
+
 import fysom
 import pyramid_basemodel as bm
 
