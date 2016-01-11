@@ -221,6 +221,7 @@ def get_or_create_notification_preferences(user):
     preference = user.notification_preference
     if preference is None:
         preference = notification_preference_factory(user.id)
+        bm.Session.add(user)
     return preference
 
 

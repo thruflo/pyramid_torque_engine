@@ -30,8 +30,15 @@ from pyramid_torque_engine import client
 from pyramid_torque_engine import traverse
 
 from pyramid_torque_engine import repo
+from pyramid_simpleauth import model as simpleauth_model
 
 from . import settings
+
+# We monkey patch user just because..
+class Email(object):
+    address = 'testing@test.com'
+
+simpleauth_model.User.best_email = Email()
 
 def make_wsgi_app(root_factory, includeme, registry=None, **settings):
     """Create and return a WSGI application."""
@@ -53,6 +60,19 @@ def make_wsgi_app(root_factory, includeme, registry=None, **settings):
 
     # Return a WSGI app.
     return config.make_wsgi_app()
+
+# Authentication related
+def createUser(**kwargs):
+    name = kwargs.get('name', u'Dummy')
+    password = kwargs.get('password', u'password')
+    data = {
+            'password': password,
+            'username': name,
+        }
+    user = simpleauth_model.User(**data)
+    bm.Session.add(user)
+    bm.Session.flush()
+    return user
 
 def createEvent(context=None):
     """Stubs an event."""
