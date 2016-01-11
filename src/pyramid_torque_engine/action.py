@@ -106,7 +106,7 @@ class StateChanger(object):
             state_event = activity_event_factory.factory({
                 'user': event.user,
                 'parent': event.parent,
-                'type_': activity_event_factory.type_from_context_action(event.parent),
+                'type_': activity_event_factory.type_from_context_action(event.parent, next_state),
                 'data': event.data
             })
             context.set_work_status(next_state, state_event)
