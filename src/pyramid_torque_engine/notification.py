@@ -13,12 +13,15 @@ from pyramid_torque_engine import operations as ops
 from pyramid_torque_engine import repo
 from pyramid import path
 
+from pyramid_simpleauth.model import get_existing_user
+
 import colander
 import notification_table_executer
 import datetime
 import pyramid_basemodel as bm
 import requests
 import json
+import os
 
 
 def send_email_from_notification_dispatch(request, notification_dispatch_id):
@@ -181,8 +184,9 @@ def get_roles_mapping(request, iface):
 
 def get_operator_user(request, registry=None):
     """We have a special user in our db representing the operator user. Here
-      we look them up by username, constructed from the client id.
-      XXXXXX at the moment Andre is the operator user!!!1
+      We look them up by username, constructed from the client server name.
+      The operator should be the one to receive e-mails that target
+      the website / administration.
     """
 
     if registry == None:
@@ -191,12 +195,14 @@ def get_operator_user(request, registry=None):
     else:
         settings = registry.settings
 
-    # Get the user.
-    from pyramid_simpleauth.model import get_existing_user
-    try:
-        username = u'aprado'
-    except KeyError:
-        username = None
+    # Get the user, which depends on the server.
+    server = os.environ.get('INI_site__title', None)
+    if server.lower() == 'opendesk':
+        username = u'opendesk_operator'
+    elif server.lower() == 'fabhub':
+        username = u'fabhub_operator'
+    else:
+        raise Exception('Operator user not configured.')
 
     return get_existing_user(username=username)
 
