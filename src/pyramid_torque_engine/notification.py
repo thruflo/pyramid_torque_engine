@@ -196,7 +196,7 @@ def get_operator_user(request, registry=None):
         settings = registry.settings
 
     # Get the user, which depends on the server.
-    server = os.environ.get('INI_site__title', None)
+    server = os.environ.get('INI_site__title', '')
     if server.lower() == 'opendesk':
         username = u'opendesk_operator'
     elif server.lower() == 'fabhub':
