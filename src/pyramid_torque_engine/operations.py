@@ -120,7 +120,8 @@ class Perform(object):
                             action_event)
                 except fysom.FysomError as err:
                     logger.warn(err)
-                all_dispatched.extend(dispatched)
+                else:
+                    all_dispatched.extend(dispatched)
         return {op: all_dispatched}
 
 class Result(object):
