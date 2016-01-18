@@ -48,6 +48,7 @@ class Bar(bm.Base, bm.BaseMixin, orm.WorkStatusMixin):
     def __json__(self, request=None):
         return {}
 
+
 def factory(cls=Model, initial_state=orm.DEFAULT_STATE, **kwargs):
     with tx.manager:
         instance = cls(**kwargs)

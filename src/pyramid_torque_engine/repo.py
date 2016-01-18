@@ -10,6 +10,7 @@ __all__ = [
     'LookupNotificationDispatch',
     'NotificationPreferencesFactory',
     'get_or_create_notification_preferences',
+    'get_or_create_reply_mailbox',
 ]
 
 import logging
@@ -24,6 +25,8 @@ from . import util
 
 import datetime
 from dateutil.relativedelta import relativedelta
+
+from sqlalchemy.orm import exc as orm_exc
 
 class DefaultJSONifier(object):
     def __init__(self, request):
@@ -217,6 +220,7 @@ class LookupNotificationDispatch(object):
 
 def get_or_create_notification_preferences(user):
     """Gets or creates the notification preferences for the user."""
+
     notification_preference_factory = NotificationPreferencesFactory()
     preference = user.notification_preference
     if preference is None:
@@ -248,3 +252,20 @@ class NotificationPreferencesFactory(object):
         session.flush()
 
         return notification_preference
+
+def get_or_create_reply_mailbox(user, target, cls=None):
+    """Gets or creates the user's mailbox for the object."""
+
+    if cls is None:
+        cls = orm.ReplyMailbox
+
+    # See if a mailbox exists for this user an target.
+    query = cls.query.filter_by(user_id=user.id).filter_by(target_oid=target.id)
+
+    try:
+        reply_mailbox = query.one()
+    except orm_exc.NoResultFound:
+        reply_mailbox = cls(user=user, target_oid=target.id)
+        bm.Session.add(reply_mailbox)
+
+    return reply_mailbox

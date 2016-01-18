@@ -437,7 +437,6 @@ class NotificationPreference(bm.Base, bm.BaseMixin):
     user_id = schema.Column(types.Integer, schema.ForeignKey('auth_users.id'))
     user = orm.relationship(simpleauth_model.User, single_parent=True,
             backref=orm.backref('notification_preference', single_parent=True, uselist=False))
-
     # Optional notification preferences.
     # simple for the moment, either sms or email text. XXX use ENUM.
     channel = schema.Column(types.Unicode(96))
@@ -450,4 +449,44 @@ class NotificationPreference(bm.Base, bm.BaseMixin):
             'frequency': self.frequency,
             'channel': self.channel,
             'user_id': self.user_id,
+        }
+
+
+gen_digest = lambda: bm.util.generate_random_digest(num_bytes=20)
+
+
+class ReplyMailbox(bm.Base, bm.BaseMixin):
+    """Provides a ``ReplyMailbox`` class used as a per-user message thread to route
+    and identify incoming email replies.
+
+    I.e.: for each message thread with multiple recipients, like the MakerJob
+    discussion, we create a ``MailboxReply`` instance for each participating user.
+
+    Store a ``target_oid`` and ``user_id`` with a random sha1 hash that
+      can be used in an email address (in the username after the ``+``).
+
+    e.g: 4f70gmneydgr+lj9p@inbound.opendesk.cc
+
+    """
+
+    __tablename__ = 'reply_mailboxes2'
+
+    # Belongs to a user.
+    user_id = schema.Column(types.Integer, schema.ForeignKey('auth_users.id'), nullable=False)
+    user = orm.relationship(simpleauth_model.User, backref=orm.backref('reply_mailboxes2',
+            cascade="all, delete-orphan", single_parent=True))
+
+    # Has a target, which we identify by the id of the object.
+    target_oid = schema.Column(types.Integer, nullable=False)
+
+    # Has an auto-generated, unique, random digest.
+    digest = schema.Column(types.Unicode(40), nullable=False, unique=True, default=gen_digest)
+
+    def __json__(self, request=None):
+        return {
+            'digest': self.digest,
+            'target_oid': self.target_oid,
+            'user': {
+                'id': self.user_id,
+            },
         }
