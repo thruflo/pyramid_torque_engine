@@ -32,6 +32,7 @@ class TestReplyMailbox(boilerplate.AppTestCase):
         with transaction.manager:
             mailbox = repo.get_or_create_reply_mailbox(user, context)
             bm.Session.flush()
+            digest = mailbox.digest
             self.assertTrue(mailbox.digest)
             self.assertEqual(mailbox.target_oid, context_id)
             self.assertEqual(mailbox.user_id, user_id)
@@ -41,6 +42,6 @@ class TestReplyMailbox(boilerplate.AppTestCase):
             bm.Session.add(user)
             bm.Session.add(context)
             mailbox = repo.get_or_create_reply_mailbox(user, context)
-            self.assertTrue(mailbox.digest)
+            self.assertEqual(mailbox.digest, digest)
             self.assertEqual(mailbox.target_oid, context_id)
             self.assertEqual(mailbox.user_id, user_id)

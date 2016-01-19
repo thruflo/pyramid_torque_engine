@@ -10,6 +10,8 @@ __all__ = [
     'LookupNotificationDispatch',
     'NotificationPreferencesFactory',
     'get_or_create_notification_preferences',
+    'GetTargetMailbox',
+    'MailboxLookup',
     'get_or_create_reply_mailbox',
 ]
 
@@ -269,3 +271,30 @@ def get_or_create_reply_mailbox(user, target, cls=None):
         bm.Session.add(reply_mailbox)
 
     return reply_mailbox
+
+
+class MailboxLookup(object):
+    """Lookup a reply mailbox by it's unique sha1 hash."""
+
+    def __init__(self, **kwargs):
+        self.model_cls = kwargs.get('model_cls', orm.ReplyMailbox)
+
+    def __call__(self, digest):
+        return self.model_cls.query.filter_by(digest=digest).first()
+
+
+class GetTargetMailbox(object):
+    """Lookup a mailbox by target and user."""
+
+    def __init__(self, **kwargs):
+        self.model_cls = kwargs.get('model_cls', orm.ReplyMailbox)
+
+    def __call__(self, target, user):
+        def get_oid(instance):
+            return u'{0}#{1}'.format(instance.__tablename__, instance.id)
+
+        kwargs = {
+            'target_oid': get_oid(target),
+            'user': user,
+        }
+        return self.model_cls.query.filter_by(**kwargs).first()
