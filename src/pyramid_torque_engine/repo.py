@@ -298,3 +298,17 @@ class GetTargetMailbox(object):
             'user': user,
         }
         return self.model_cls.query.filter_by(**kwargs).first()
+
+class MessageFactory(ActivityEventFactory):
+    """Creates a new message. for now it's just the activity event factory"""
+
+    def __init__(self, request, **kwargs):
+        self.request = request
+        self.model_cls = kwargs.get('model_cls', orm.Message)
+        self.session = kwargs.get('session', bm.Session)
+
+    def __call__(self, request, event):
+        message = self.model_cls(event)
+        self.session.add(message)
+        self.session.flush()
+        return message

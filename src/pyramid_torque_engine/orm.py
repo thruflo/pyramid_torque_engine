@@ -490,3 +490,30 @@ class ReplyMailbox(bm.Base, bm.BaseMixin):
                 'id': self.user_id,
             },
         }
+
+class Message(bm.Base, bm.BaseMixin):
+    """Encapsulate user's notification preferences."""
+
+    __tablename__ = 'mail_messages'
+
+    # Has an activity event.
+    event_id = schema.Column(
+        types.Integer,
+        schema.ForeignKey('activity_events.id'),
+    )
+    event = orm.relationship(
+        ActivityEvent,
+        backref=orm.backref(
+            'mail_messages',
+            lazy='joined',
+            single_parent=True,
+            uselist=False,
+        ),
+        lazy='joined',
+        uselist=False,
+    )
+
+    def __json__(self, request=None):
+        return {
+            'id': self.id,
+        }
