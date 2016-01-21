@@ -13,6 +13,7 @@ __all__ = [
     'GetTargetMailbox',
     'MailboxLookup',
     'get_or_create_reply_mailbox',
+    'MessageFactory'
 ]
 
 import logging
@@ -261,13 +262,18 @@ def get_or_create_reply_mailbox(user, target, cls=None):
     if cls is None:
         cls = orm.ReplyMailbox
 
-    # See if a mailbox exists for this user an target.
-    query = cls.query.filter_by(user_id=user.id).filter_by(target_oid=target.id)
+    # See if a mailbox exists for this user an target.
+    query = cls.query.filter_by(
+            user_id=user.id).filter_by(
+            target_oid=target.id).filter_by(
+            target_tablename=target.__tablename__)
 
     try:
         reply_mailbox = query.one()
     except orm_exc.NoResultFound:
-        reply_mailbox = cls(user=user, target_oid=target.id)
+        reply_mailbox = cls(user=user,
+                            target_oid=target.id,
+                            target_tablename=target.__tablename__)
         bm.Session.add(reply_mailbox)
 
     return reply_mailbox
@@ -299,16 +305,16 @@ class GetTargetMailbox(object):
         }
         return self.model_cls.query.filter_by(**kwargs).first()
 
-class MessageFactory(ActivityEventFactory):
-    """Creates a new message. for now it's just the activity event factory"""
+class MessageFactory(object):
+    """Creates a new message..."""
 
     def __init__(self, request, **kwargs):
         self.request = request
         self.model_cls = kwargs.get('model_cls', orm.Message)
         self.session = kwargs.get('session', bm.Session)
 
-    def __call__(self, request, event):
-        message = self.model_cls(event)
+    def __call__(self, mailbox, event):
+        message = self.model_cls(reply_mailbox=mailbox, event=event)
         self.session.add(message)
         self.session.flush()
         return message

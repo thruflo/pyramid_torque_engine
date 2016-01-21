@@ -10,8 +10,9 @@ __all__ = [
     'Notification',
     'NotificationDispatch',
     'NotificationPreference',
+    'ReplyMailbox',
     'WorkStatus',
-    'WorkStatusMixin',
+    'WorkStatusMixin'
 ]
 
 import os
@@ -455,6 +456,15 @@ class NotificationPreference(bm.Base, bm.BaseMixin):
 gen_digest = lambda: bm.util.generate_random_digest(num_bytes=20)
 
 
+@zi.implementer(interfaces.IMessaging)
+class MessagingMixin(object):
+    """
+        Implements a messaging system using hashed mailboxes.
+    """
+
+    pass
+
+
 class ReplyMailbox(bm.Base, bm.BaseMixin):
     """Provides a ``ReplyMailbox`` class used as a per-user message thread to route
     and identify incoming email replies.
@@ -479,6 +489,9 @@ class ReplyMailbox(bm.Base, bm.BaseMixin):
     # Has a target, which we identify by the id of the object.
     target_oid = schema.Column(types.Integer, nullable=False)
 
+    # Target tablename.
+    target_tablename = schema.Column(types.Unicode(50), nullable=False)
+
     # Has an auto-generated, unique, random digest.
     digest = schema.Column(types.Unicode(40), nullable=False, unique=True, default=gen_digest)
 
@@ -491,10 +504,15 @@ class ReplyMailbox(bm.Base, bm.BaseMixin):
             },
         }
 
-class Message(bm.Base, bm.BaseMixin):
-    """Encapsulate user's notification preferences."""
+class Message(bm.Base, bm.BaseMixin, bm.mixin.TouchMixin, WorkStatusMixin):
+    """Encapsulate mailbox messages."""
 
     __tablename__ = 'mail_messages'
+
+    # Belongs to a ReplyMailbox.
+    reply_mailbox_id = schema.Column(types.Integer, schema.ForeignKey('reply_mailboxes2.id'), nullable=False)
+    reply_mailbox = orm.relationship(ReplyMailbox, backref=orm.backref('messages',
+            cascade="all, delete-orphan", single_parent=True))
 
     # Has an activity event.
     event_id = schema.Column(

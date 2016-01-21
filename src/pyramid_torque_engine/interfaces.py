@@ -10,9 +10,13 @@
 
 __all__ = [
     'IWorkStatus',
+    'IMessaging',
 ]
 
 from pyramid import interfaces
 
 class IWorkStatus(interfaces.Interface):
     """Provided by Work Status Machine."""
+
+class IMessaging(interfaces.Interface):
+    """Provided by Messaging machine."""
