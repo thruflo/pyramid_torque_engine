@@ -10,6 +10,8 @@ import inspect
 import urllib
 import zope.interface
 
+import pyramid_basemodel as bm
+
 class DeclaredNamespacedNamedTuple(object):
     """Instantiate one of these with a namespace. Call ``register`` to add
       values and then access as normal attributes. I.e.:
@@ -165,3 +167,14 @@ def get_var(environ, keys, default=None):
         if environ.has_key(key):
             return environ.get(key)
     return default
+
+def get_class_by_tablename(tablename):
+    """Return class reference mapped to table.
+
+    :param tablename: String with name of table.
+    :return: Class reference or None.
+    """
+
+    for c in bm.Base._decl_class_registry.values():
+        if hasattr(c, '__tablename__') and c.__tablename__ == tablename:
+            return c

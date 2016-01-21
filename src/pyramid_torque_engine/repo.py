@@ -12,6 +12,7 @@ __all__ = [
     'get_or_create_notification_preferences',
     'GetTargetMailbox',
     'MailboxLookup',
+    'MailboxContextExtractor',
     'get_or_create_reply_mailbox',
     'MessageFactory'
 ]
@@ -288,6 +289,17 @@ class MailboxLookup(object):
     def __call__(self, digest):
         return self.model_cls.query.filter_by(digest=digest).first()
 
+
+class MailboxContextExtractor(object):
+    """Extracts the context of a given mailbox"""
+
+    def __init__(self, **kwargs):
+        self.model_cls = kwargs.get('model_cls', orm.ReplyMailbox)
+
+    def __call__(self, mailbox):
+        cls = util.get_class_by_tablename(mailbox.target_tablename)
+        id_ = mailbox.target_oid
+        return cls.query.filter_by(id=id_).first()
 
 class GetTargetMailbox(object):
     """Lookup a mailbox by target and user."""
