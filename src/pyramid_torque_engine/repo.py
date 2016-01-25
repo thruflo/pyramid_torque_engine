@@ -277,6 +277,8 @@ def get_or_create_reply_mailbox(user, target, cls=None):
                             target_tablename=target.__tablename__)
         bm.Session.add(reply_mailbox)
 
+    bm.Session.flush()
+
     return reply_mailbox
 
 

@@ -77,6 +77,8 @@ class IncludeMe(object):
         # notifications to be added.
         config.include('pyramid_torque_engine.notification')
 
+        config.include('pyramid_torque_engine.messaging')
+
         # Provide the `request.torque` client API.
         config.include('pyramid_torque_engine.client')
 

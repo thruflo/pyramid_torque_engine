@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Provides sync for podio."""
+"""Provides the notification machinery."""
 
 __all__ = [
     'add_notification',
@@ -14,6 +14,7 @@ from pyramid_torque_engine import repo
 from pyramid import path
 
 from pyramid_simpleauth.model import get_existing_user
+from pyramid_simpleauth.model import User
 
 import colander
 import notification_table_executer
@@ -22,6 +23,8 @@ import pyramid_basemodel as bm
 import requests
 import json
 import os
+
+from . import interfaces
 
 
 def send_email_from_notification_dispatch(request, notification_dispatch_id):
@@ -44,11 +47,11 @@ def send_email_from_notification_dispatch(request, notification_dispatch_id):
     # Get our Address to send to.
     send_to = notification_dispatch.address
 
-    # Get our view to render the spec.
-    view = dotted_name_resolver.resolve(notification_dispatch.view)
-
     # Get the context.
     context = notification_dispatch.notification.event.parent
+
+    # Get our view to render the spec.
+    view = dotted_name_resolver.resolve(notification_dispatch.view)
 
     # Send the email.
     view(request, context, spec, send_to)
@@ -130,7 +133,10 @@ class AddNotification(object):
         # get relevant information.
         interested_users_func = get_roles_mapping(request, iface)
         interested_users = interested_users_func(request, context)
+
         for user in interested_users[role]:
+            if isinstance(user, (unicode, str)):
+                user = User.get_or_create_user_by_email(user)
             notification = notification_factory(event, user, dispatch_mapping, delay)
             notifications.append(notification)
 
@@ -180,6 +186,15 @@ def get_roles_mapping(request, iface):
     roles_mapping = registry.roles_mapping
 
     return roles_mapping.get(iface, None)
+
+def get_dispatch_mapping(request, iface):
+    """Gets the dispatch mapping for the resource."""
+
+    # Unpack.
+    registry = request.registry
+    dispatch_mapping = registry.dispatch_mapping
+
+    return dispatch_mapping.get(iface, None)
 
 
 def get_operator_user(request, registry=None):
@@ -234,6 +249,7 @@ class IncludeMe(object):
         self.add_notification = kwargs.get('add_notification', add_notification)
         self.add_roles_mapping = kwargs.get('add_roles_mapping', add_roles_mapping)
         self.get_roles_mapping = kwargs.get('get_roles_mapping', get_roles_mapping)
+        self.get_dispatch_mapping = kwargs.get('get_dispatch_mapping', get_dispatch_mapping)
 
     def __call__(self, config):
         """Handle `/events` requests and provide subscription directive."""
@@ -244,10 +260,12 @@ class IncludeMe(object):
         # Adds a notification to the resource.
         config.add_directive('add_notification', self.add_notification)
         config.registry.roles_mapping = {}
+        config.registry.dispatch_mapping = {}
 
         # Adds / gets role mapping.
         config.add_directive('add_roles_mapping', self.add_roles_mapping)
         config.add_directive('get_roles_mapping', self.get_roles_mapping)
+        config.add_directive('get_dispatch_mapping', self.get_dispatch_mapping)
 
         # Operator user to receive admin related emails.
         config.add_request_method(get_operator_user, 'operator_user', reify=True)

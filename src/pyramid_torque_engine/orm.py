@@ -459,10 +459,11 @@ gen_digest = lambda: bm.util.generate_random_digest(num_bytes=20)
 @zi.implementer(interfaces.IMessaging)
 class MessagingMixin(object):
     """
-        Implements a messaging system using hashed mailboxes.
+        Classes with this Mixin are capable of sending and receiving
+        hashed messages.
     """
 
-    pass
+    messaging_is_enabled = schema.Column(types.Boolean, nullable=False, default=False)
 
 
 class ReplyMailbox(bm.Base, bm.BaseMixin):
@@ -495,10 +496,15 @@ class ReplyMailbox(bm.Base, bm.BaseMixin):
     # Has an auto-generated, unique, random digest.
     digest = schema.Column(types.Unicode(40), nullable=False, unique=True, default=gen_digest)
 
+    @property
+    def hashed_email_address(self):
+        return self.digest + '@inbound.opendesk.cc'
+
     def __json__(self, request=None):
         return {
             'digest': self.digest,
             'target_oid': self.target_oid,
+            'target_tablename': self.target_tablename,
             'user': {
                 'id': self.user_id,
             },

@@ -9,6 +9,7 @@ import collections
 import inspect
 import urllib
 import zope.interface
+import markdown2
 
 import pyramid_basemodel as bm
 
@@ -178,3 +179,16 @@ def get_class_by_tablename(tablename):
     for c in bm.Base._decl_class_registry.values():
         if hasattr(c, '__tablename__') and c.__tablename__ == tablename:
             return c
+
+def markdown_to_html(markdown_str, to_html=None):
+    """Output markdown as html."""
+
+    # Compose.
+    if to_html is None:
+        to_html = markdown2.markdown
+
+    # If ``None`` return ''
+    if markdown_str is None:
+        markdown_str = u''
+
+    return to_html(markdown_str)
