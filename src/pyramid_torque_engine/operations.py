@@ -108,13 +108,7 @@ class Perform(object):
         event_factory = repo.ActivityEventFactory(request)
         for target in targets:
             if state_changer.can_perform(target, action):
-                type_ = event_factory.type_from_context_action(target, action)
-                action_event = event_factory.factory({
-                    'user': user,
-                    'parent': target,
-                    'type_': type_,
-                    'data': data,
-                })
+                action_event = event_factory(target, user, action=action)
                 try:
                     _, _, dispatched = state_changer.perform(target, action,
                             action_event)
