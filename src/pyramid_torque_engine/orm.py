@@ -75,15 +75,15 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
         types.Integer,
         schema.ForeignKey('activity_event_associations.id'),
     )
-    assocation = orm.relationship(ActivityEventAssociation, backref='activity_events')
+    association = orm.relationship(ActivityEventAssociation, backref='activity_events')
 
     @property
     def parent(self):
-        return self.assocation.parent
+        return self.association.parent
 
     @parent.setter
     def parent(self, value):
-        self.assocation.parent = value
+        self.association.parent = value
 
     # Has an arbitrary data payload.
     # data = schema.Column(postgresql.JSONB, default={}, nullable=False)
@@ -157,11 +157,11 @@ class WorkStatus(bm.Base, bm.BaseMixin):
         types.Integer,
         schema.ForeignKey('work_status_associations.id'),
     )
-    assocation = orm.relationship(WorkStatusAssociation, backref='work_statuses')
+    association = orm.relationship(WorkStatusAssociation, backref='work_statuses')
 
     @property
     def parent(self):
-        return self.assocation.parent
+        return self.association.parent
 
     # Can have an event (i.e.: the change to this state was triggered by).
     event_id = schema.Column(
