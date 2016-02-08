@@ -94,6 +94,7 @@ class ActivityEventFactory(object):
             type_ = self.type_from_context_action(parent, action)
 
         # Add context snapshot to the event data.
+        self.session.add(parent)
         data['snapshot'] = self.snapshot(parent, user)
 
         # Return a saved instance.
