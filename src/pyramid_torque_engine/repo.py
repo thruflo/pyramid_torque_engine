@@ -68,8 +68,17 @@ class ActivityEventFactory(object):
 
     def snapshot(self, parent, user=None):
         request = self.request
+        try:
+            parent_data = self.jsonify(parent.__json__(request=request))
+        except ValueError as err:
+            logger.warn('XXX WHY IS THIS CIRCULAR???')
+            logger.warn(err, exc_info=True)
+            parent_data = {
+                'id': parent.id,
+                'type': parent.class_slug,
+            }
         data = {
-            'parent': self.jsonify(parent),
+            'parent': parent_data,
         }
         if user:
             data['user'] = self.jsonify(user)
