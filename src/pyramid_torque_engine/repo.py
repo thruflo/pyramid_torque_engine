@@ -80,8 +80,12 @@ class ActivityEventFactory(object):
         data = {
             'parent': parent_data,
         }
+        # XXX Sort this out.
         if user:
-            data['user'] = self.jsonify(user)
+            user_data = self.jsonify(user)
+            if isinstance(user_data, basestring):
+                user_data = json.loads(user_data)
+            data['user'] = user_data
         return json.loads(render.json_dumps(request, data))
 
     def __call__(self, parent, user, type_=None, data=None, action=None):
