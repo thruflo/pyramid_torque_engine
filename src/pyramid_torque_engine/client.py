@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 import json
 import os
+import threading
 import urlparse
 
 from collections import namedtuple
@@ -78,8 +79,20 @@ class WebTestDispatcher(client.DirectDispatcher):
                 headers[k] = value
 
         # Make and handle the response.
-        r = self.webtest_poster(url, post_data, headers, method=method)
+        r = self.make_request(url, post_data, headers, method=method)
         return self.handle(r)
+
+    def make_request(self, *args, **kwargs):
+        mapping = {}
+        patched_args = (mapping,) + args
+        t = threading.Thread(target=self._make_request, args=patched_args,
+                kwargs=kwargs)
+        t.start()
+        t.join()
+        return mapping['r']
+
+    def _make_request(self, mapping, *args, **kwargs):
+        mapping['r'] = self.webtest_poster(*args, **kwargs)
 
 class HookDispatcher(object):
     """Instantiate and authenticate a generic torque client and use it to
