@@ -100,17 +100,20 @@ class TestAllowedActions(boilerplate.AppTestCase):
         with transaction.manager:
             bm.Session.add(context)
             self.assertTrue(state_changer.can_perform(context, a.START))
+            context_id = context.id
 
         # Perform the action.
         # We have to use a transaction manager because perform creates
         # a new event on state change.
+        context = model.Model.query.get(context_id)
         with transaction.manager:
             bm.Session.add(event)
             bm.Session.add(context)
             _ = state_changer.perform(context, a.START, event)
+            status = context.work_status.value
 
         # The context is now in the configured state.
-        self.assertEqual(context.work_status.value, s.STARTED)
+        self.assertEqual(status, s.STARTED)
 
     def test_asterix_and_ellipsis(self):
         """You can perform an action registered on any state."""
@@ -140,6 +143,7 @@ class TestAllowedActions(boilerplate.AppTestCase):
             bm.Session.add(context)
             state_changer.perform(context, a.POKE, event)
             s2 = context.work_status.value
+            context_id = context.id
 
         # And because it has a to state of Ellipsis, it stays in
         # whatever state its in.
@@ -151,8 +155,10 @@ class TestAllowedActions(boilerplate.AppTestCase):
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.TRANSMOGRIFY, event)
-        self.assertEqual(context.work_status.value, s.TRANSMOGRIFIED)
+            s3 = context.work_status.value
+        self.assertEqual(s3, s.TRANSMOGRIFIED)
 
     def test_multiple_rules(self):
         """A from state can have multiple to states."""
@@ -174,23 +180,30 @@ class TestAllowedActions(boilerplate.AppTestCase):
             bm.Session.add(event)
             bm.Session.add(context)
             state_changer.perform(context, a.COMPLETE, event)
-        self.assertEqual(context.work_status.value, s.COMPLETED)
+            s1 = context.work_status.value
+            context_id = context.id
+
+        self.assertEqual(s1, s.COMPLETED)
 
         # Complete -> absolutely completed.
         # We have to use a transaction manager because perform creates
         # a new event on state change.
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.COMPLETE, event)
-        self.assertEqual(context.work_status.value, s.ABSOLUTELY_COMPLETED)
+            s2 = context.work_status.value
+        self.assertEqual(s2, s.ABSOLUTELY_COMPLETED)
 
         # Complete -> ... the same state ...
         # We have to use a transaction manager because perform creates
         # a new event on state change.
+        context = model.Model.query.get(context_id)
         with transaction.manager:
             bm.Session.add(event)
             state_changer.perform(context, a.COMPLETE, event)
-        self.assertEqual(context.work_status.value, s.ABSOLUTELY_COMPLETED)
+            s3 = context.work_status.value
+        self.assertEqual(s3, s.ABSOLUTELY_COMPLETED)
 
     def test_multiple_states(self):
         """A context can allow an action for multiple states."""
@@ -212,7 +225,8 @@ class TestAllowedActions(boilerplate.AppTestCase):
             bm.Session.add(event)
             bm.Session.add(context)
             state_changer.perform(context, a.CANCEL, event)
-        self.assertEqual(context.work_status.value, s.CANCELLED)
+            s1 = context.work_status.value
+        self.assertEqual(s1, s.CANCELLED)
 
         # Cancel when started.
         c2 = model.factory(initial_state=s.STARTED)
@@ -221,7 +235,8 @@ class TestAllowedActions(boilerplate.AppTestCase):
         with transaction.manager:
             bm.Session.add(event)
             state_changer.perform(c2, a.CANCEL, event)
-        self.assertEqual(context.work_status.value, s.CANCELLED)
+            s2 = c2.work_status.value
+        self.assertEqual(s2, s.CANCELLED)
 
 class TestConflictingActions(boilerplate.AppTestCase):
     """Test two identical allow rules raise a conflict error."""
@@ -298,7 +313,8 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
             bm.Session.add(event)
             bm.Session.add(context)
             state_changer.perform(context, a.PUBLISH, event)
-        self.assertEqual(context.work_status.value, s.PUBLISHED)
+            s1 = context.work_status.value
+        self.assertEqual(s1, s.PUBLISHED)
 
     def test_for_foo_with_moderation(self):
         """Instances that provide *both* IModel & IFoo should require moderation."""
@@ -323,15 +339,20 @@ class TestInterfaceSpecificity(boilerplate.AppTestCase):
             bm.Session.add(event)
             bm.Session.add(context)
             state_changer.perform(context, a.PUBLISH, event)
-        self.assertEqual(context.work_status.value, s.PENDING_MODERATION)
+            s1 = context.work_status.value
+            context_id = context.id
+        self.assertEqual(s1, s.PENDING_MODERATION)
 
         # Approve -> s.PUBLISHED.
         # We have to use a transaction manager because perform creates
         # a new event on state change.
+        # context = model.Foo.query.get(context_id)
         with transaction.manager:
             bm.Session.add(event)
+            bm.Session.add(context)
             state_changer.perform(context, a.APPROVE, event)
-        self.assertEqual(context.work_status.value, s.PUBLISHED)
+            s2 = context.work_status.value
+        self.assertEqual(s2, s.PUBLISHED)
 
     def test_must_provide_interface(self):
         """If you don't provide the interface, you don't have the rule."""

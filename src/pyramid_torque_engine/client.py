@@ -50,6 +50,7 @@ def client_factory(client_cls, dispatcher, settings):
     torque_api_key = settings.get('torque.api_key')
     return client_cls(dispatcher, torque_url, torque_api_key)
 
+
 class WebTestDispatcher(client.DirectDispatcher):
     """A dispatcher that skips nTorque and just makes the request directly
       using a ``ntorque.tests.ftests.test_client.WestTestPoster``.
@@ -79,8 +80,10 @@ class WebTestDispatcher(client.DirectDispatcher):
                 headers[k] = value
 
         # Make and handle the response.
+        # Make and handle the response.
         r = self.make_request(url, post_data, headers, method=method)
         return self.handle(r)
+
 
     def make_request(self, *args, **kwargs):
         mapping = {}
@@ -93,6 +96,7 @@ class WebTestDispatcher(client.DirectDispatcher):
 
     def _make_request(self, mapping, *args, **kwargs):
         mapping['r'] = self.webtest_poster(*args, **kwargs)
+
 
 class HookDispatcher(object):
     """Instantiate and authenticate a generic torque client and use it to
@@ -320,6 +324,7 @@ def get_torque_api(request):
         else:
             default = client.NoopDispatcher()
             immediate = client.NoopDispatcher()
+
         client_cls=client.HTTPTorqueClient
     else:
         default = client.AfterCommitDispatcher()
