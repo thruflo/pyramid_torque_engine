@@ -66,27 +66,28 @@ class ActivityEventFactory(object):
             parent.activity_events = [instance]
         return self.save(instance)
 
+    def inline(self, instance):
+        return {
+            'id': instance.id,
+            'type': instance.class_slug,
+        }
+
     def snapshot(self, parent, user=None):
         request = self.request
-        try:
-            parent_data = self.jsonify(parent.__json__(request=request))
-        except ValueError as err:
-            logger.warn('XXX WHY IS THIS CIRCULAR???')
-            logger.warn(err, exc_info=True)
-            parent_data = {
-                'id': parent.id,
-                'type': parent.class_slug,
-            }
         data = {
-            'parent': parent_data,
+            'parent': self.inline(parent),
         }
-        # XXX Sort this out.
         if user:
-            user_data = self.jsonify(user)
-            if isinstance(user_data, basestring):
-                user_data = json.loads(user_data)
+            if isinstance(user, basestring):
+                data = json.loads(user)
+                user_data = {
+                    'id': data['id'],
+                    'type': 'auth_users'
+                }
+            else:
+                user_data = self.inline(user)
             data['user'] = user_data
-        return json.loads(render.json_dumps(request, data))
+        return data
 
     def __call__(self, parent, user, type_=None, data=None, action=None):
         """Create and store an activity event."""
