@@ -51,7 +51,7 @@ def send_from_notification_dispatch(request, notification_dispatch_id):
     channel = notification_dispatch.category
 
     # Get the template vars.
-    tmpl_vars = view(request, context, spec)
+    tmpl_vars = view(request, context, send_to, event, event.action)
 
     # Set some defaults for the template vars.
     tmpl_vars.setdefault('context', context)
