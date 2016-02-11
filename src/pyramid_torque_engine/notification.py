@@ -7,6 +7,9 @@ __all__ = [
     'AddNotification'
 ]
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pyramid_torque_engine import unpack
 from pyramid_torque_engine import operations as ops
 
@@ -131,6 +134,9 @@ class AddNotification(object):
         interested_users_func = get_roles_mapping(request, iface)
         interested_users = interested_users_func(request, context)
         for user in interested_users[role]:
+            # Just user is a shorthand for context.user.
+            if user == 'user':
+                user = context.user
             notification = notification_factory(event, user, dispatch_mapping, delay)
             notifications.append(notification)
 
@@ -166,6 +172,7 @@ def add_roles_mapping(config, iface, mapping):
     # Noop if we've done this already.
     roles_mapping = registry.roles_mapping
     if iface in roles_mapping:
+        logger.warn('Notification: roles_mapping alreaady configured for {}'.format(iface))
         return
 
     # Register the role mapping.
