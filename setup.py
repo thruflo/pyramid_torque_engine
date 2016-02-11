@@ -32,7 +32,8 @@ setup(
         'pyramid_basemodel',
         'pyramid_simpleauth',
         'transaction',
-        'zope.interface'
+        'zope.interface',
+        'pyramid_postmark'
     ],
     tests_require = [
         'coverage',

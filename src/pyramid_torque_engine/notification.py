@@ -259,13 +259,8 @@ class IncludeMe(object):
         # Operator user to receive admin related emails.
         config.add_request_method(get_operator_user, 'operator_user', reify=True)
 
-        # Expose webhook views to notifications such as single / batch emails / sms's.
-        config.add_route('notification_email_single', '/notifications/email_single')
-        config.add_view(notification_email_single_view, renderer='json',
-                request_method='POST', route_name='notification_email_single')
-        config.add_route('notification_email_batch', '/notifications/email_batch')
-        config.add_view(notification_email_batch_view, renderer='json',
-                request_method='POST', route_name='notification_email_batch')
+        # Email sender.
+        config.include('pyramid_postmark')
 
         # Expose webhook views to notifications such as single / batch emails / sms's.
         config.add_route('notification_single', '/notifications/single')
