@@ -140,8 +140,8 @@ class AddNotification(object):
 
 def add_notification(config,
                      iface,
-                     role,
                      state_or_action_changes,
+                     role,
                      dispatch_mapping,
                      delay=None):
 
