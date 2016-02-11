@@ -17,7 +17,7 @@ import transaction
 AVAILABLE_CHANNELS = ['sms', 'email']
 
 env = os.environ
-SINGLE_EMAIL_ENDPOINT = env.get('NOTIFICATION_SINGLE_EMAIL_ENDPOINT', None)
+NOTIFICATION_SINGLE_ENDPOINT = env.get('NOTIFICATION_SINGLE_ENDPOINT', None)
 ENGINE_API_KEY = util.get_var(env, c.ENGINE_API_KEY_NAMES)
 
 
@@ -29,7 +29,7 @@ def post_notification_dispatch(dispatch):
         headers[key] = ENGINE_API_KEY
 
     _ = requests.post(
-                    SINGLE_EMAIL_ENDPOINT,
+                    NOTIFICATION_SINGLE_ENDPOINT,
                     headers=headers,
                     data=json.dumps(
                         {'notification_dispatch_id': dispatch.id}))
@@ -39,7 +39,6 @@ def dispatch_user_notifications(user, user_notifications):
         NotificationDispatcher ids e.g: /dispatch_email, /dispatch_sms and etc.
     """
 
-    endpoint = SINGLE_EMAIL_ENDPOINT
     for ch in AVAILABLE_CHANNELS:
         # XXX check for preferences e.g: and user.channel == ch
         to_dispatch = [d for d in user_notifications if d.category == ch]

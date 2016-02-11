@@ -27,7 +27,7 @@ import json
 import os
 
 
-def send_email_from_notification_dispatch(request, notification_dispatch_id):
+def send_from_notification_dispatch(request, notification_dispatch_id):
     """Boilerplate to extract information from the notification
     dispatch and send an email.
     Please note that no verification if it should
@@ -63,8 +63,8 @@ def send_email_from_notification_dispatch(request, notification_dispatch_id):
     return True
 
 
-def notification_email_single_view(request):
-    """View to handle a single email notification dispatch"""
+def notification_single_view(request):
+    """View to handle a single notification dispatch"""
 
     class SingleNotificationSchema(colander.Schema):
         notification_dispatch_id = colander.SchemaNode(
@@ -91,7 +91,7 @@ def notification_email_single_view(request):
     notification_dispatch_id = appstruct['notification_dispatch_id']
 
     # Send the email.
-    r = send_email_from_notification_dispatch(request, notification_dispatch_id)
+    r = send_from_notification_dispatch(request, notification_dispatch_id)
     if not r:
         request.response.status_int = 404
         return {'error': u'Notification dispatch not Found.'}
@@ -100,7 +100,7 @@ def notification_email_single_view(request):
     return {'dispatched': 'ok'}
 
 
-def notification_email_batch_view(request):
+def notification_batch_view(request):
     """View to handle a batch email notification dispatch"""
     pass
 
@@ -137,6 +137,7 @@ class AddNotification(object):
             # Just user is a shorthand for context.user.
             if user == 'user':
                 user = context.user
+            # create the notifications.
             notification = notification_factory(event, user, dispatch_mapping, delay)
             notifications.append(notification)
 
@@ -225,11 +226,10 @@ def dispatch_notifications(request, notifications):
     for notification in notifications:
         # Get our create the user preferences.
         preference = repo.get_or_create_notification_preferences(notification.user)
-        # Check if its an email and if its due to dispatch, if so, dispatch.
-        if preference.channel == 'email':
-            for dispatch in lookup.by_notification_id(notification.id):
-                if dispatch.due <= now:
-                    send_email_from_notification_dispatch(request, dispatch.id)
+        # Check if its due to dispatch, if so, dispatch.
+        for dispatch in lookup.by_notification_id(notification.id):
+            if dispatch.due <= now:
+                send_from_notification_dispatch(request, dispatch.id)
 
 
 class IncludeMe(object):
@@ -267,7 +267,14 @@ class IncludeMe(object):
         config.add_view(notification_email_batch_view, renderer='json',
                 request_method='POST', route_name='notification_email_batch')
 
+        # Expose webhook views to notifications such as single / batch emails / sms's.
+        config.add_route('notification_single', '/notifications/single')
+        config.add_view(notification_single_view, renderer='json',
+                request_method='POST', route_name='notification_single')
 
+        config.add_route('notification_batch', '/notifications/batch')
+        config.add_view(notification_batch_view, renderer='json',
+                request_method='POST', route_name='notification_batch')
 
 
 includeme = IncludeMe().__call__
