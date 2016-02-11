@@ -368,6 +368,8 @@ class NotificationDispatch(bm.Base, bm.BaseMixin):
         schema.ForeignKey('notifications.id'),
     )
 
+    # bcc info
+    bcc = schema.Column(types.Unicode(96))
     # view  -> function to decode things
     view = schema.Column(types.Unicode(96))
     # simple for the moment, either single or batch text. XXX use ENUM.

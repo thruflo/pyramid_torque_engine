@@ -41,20 +41,39 @@ def send_from_notification_dispatch(request, notification_dispatch_id):
     if not notification_dispatch:
         return False
 
-    # Get our spec.
+    # Extract information from the notification dispatch.
     spec = notification_dispatch.single_spec
-
-    # Get our Address to send to.
     send_to = notification_dispatch.address
-
-    # Get our view to render the spec.
     view = dotted_name_resolver.resolve(notification_dispatch.view)
+    event = notification_dispatch.notification.event
+    bcc = notification_dispatch.bcc
+    context = event.parent
+    channel = notification_dispatch.category
 
-    # Get the context.
-    context = notification_dispatch.notification.event.parent
+    # Get the template vars.
+    tmpl_vars = view(request, context, spec)
 
-    # Send the email.
-    view(request, context, spec, send_to)
+    # Set some defaults for the template vars.
+    tmpl_vars.setdefault('context', context)
+    tmpl_vars.setdefault('to', send_to)
+    tmpl_vars.setdefault('from', repo.extract_us(request))
+    tmpl_vars.setdefault('state_or_action', event.action)
+    tmpl_vars.setdefault('event', event)
+    tmpl_vars.setdefault('subject', '{0} {1}'.format(event.target, event.action))
+    # Check if we should add bcc.
+    if bcc:
+        tmpl_vars.setdefault('bcc', bcc)
+
+    if channel == 'email':
+        request.render_email(
+                tmpl_vars['from'],
+                tmpl_vars['to'],
+                tmpl_vars['subject'],
+                spec, tmpl_vars, **tmpl_vars)
+    elif channel == 'sms':
+        pass
+    else:
+        raise Exception('Unknown channel to send the notification')
 
     # Set the sent info in our db.
     notification_dispatch.sent = datetime.datetime.now()
@@ -108,13 +127,14 @@ def notification_batch_view(request):
 class AddNotification(object):
     """Standard boilerplate to add a notification."""
 
-    def __init__(self, iface, role, dispatch_mapping, delay=None):
+    def __init__(self, iface, role, dispatch_mapping, delay=None, bcc=None):
         """"""
 
         self.dispatch_mapping = dispatch_mapping
         self.notification_factory = repo.NotificationFactory
         self.role = role
         self.delay = delay
+        self.bcc = bcc
         self.iface = iface
 
     def __call__(self, request, context, event, op, **kwargs):
@@ -124,6 +144,7 @@ class AddNotification(object):
         dispatch_mapping = self.dispatch_mapping
         notification_factory = self.notification_factory(request)
         delay = self.delay
+        bcc = self.bcc
         iface = self.iface
         role = self.role
 
@@ -138,7 +159,7 @@ class AddNotification(object):
             if user == 'user':
                 user = context.user
             # create the notifications.
-            notification = notification_factory(event, user, dispatch_mapping, delay)
+            notification = notification_factory(event, user, dispatch_mapping, delay, bcc)
             notifications.append(notification)
 
         # Tries to optimistically send the notification.

@@ -169,11 +169,12 @@ class NotificationFactory(object):
                 NotificationPreferencesFactory())
         self.session = kwargs.get('session', bm.Session)
 
-    def __call__(self, event, user, dispatch_mapping, delay=None):
+    def __call__(self, event, user, dispatch_mapping, delay=None, bcc=None):
         """Create and store a notification and a notification dispatch."""
 
         # Unpack.
         session = self.session
+        request = self.request
 
         # Create notification.
         notification = self.notification_cls(user=user, event=event)
@@ -200,11 +201,14 @@ class NotificationFactory(object):
         if delay:
             delay = relativedelta(minutes=delay)
             due = due + delay
+        if bcc:
+            if bcc is True or bcc == '':
+                bcc = util.extract_us(request)
 
         # Create a notification dispatch for each channel.
         for k, v in dispatch_mapping.items():
             notification_dispatch = self.notification_dispatch_cls(notification=notification,
-                    due=due, category=k, view=v['view'],
+                    due=due, category=k, view=v['view'], bcc=bcc,
                     single_spec=v['single'], batch_spec=v['batch'], address=email)
             session.add(notification_dispatch)
 
@@ -238,7 +242,6 @@ def get_or_create_notification_preferences(user):
         preference = notification_preference_factory(user.id)
         bm.Session.add(user)
     return preference
-
 
 class NotificationPreferencesFactory(object):
     """Boilerplate to create and save ``Notification preference``s."""
