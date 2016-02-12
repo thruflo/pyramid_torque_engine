@@ -32,8 +32,7 @@ setup(
         'pyramid_basemodel',
         'pyramid_simpleauth',
         'transaction',
-        'zope.interface',
-        'pyramid_notification'
+        'zope.interface'
     ],
     tests_require = [
         'coverage',
