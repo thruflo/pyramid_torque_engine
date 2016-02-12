@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'pyramid_torque_engine',
-    version = '0.5',
+    version = '0.6',
     description = 'Pyramid and nTorque based dual queue work engine system.',
     author = 'James Arthur',
     author_email = 'username: thruflo, domain: gmail.com',
@@ -33,16 +33,11 @@ setup(
         'pyramid_simpleauth',
         'transaction',
         'zope.interface',
-        'pyramid_postmark'
+        'pyramid_notification'
     ],
     tests_require = [
         'coverage',
         'nose',
         'mock'
     ],
-    entry_points = {
-        'console_scripts': [
-            'engine_notification = pyramid_torque_engine.notification_table_executer:run'
-        ]
-    }
 )
