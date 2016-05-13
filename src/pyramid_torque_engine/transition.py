@@ -138,7 +138,7 @@ def noop_handler(request):
     response = request.response
     if request.context:
         response.status_int = 204
-        response.body = None
+        response.body = ''
         del response.content_type
     else:
         response.status_int = 404
