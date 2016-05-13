@@ -132,14 +132,17 @@ class AddEngineTransition(object):
 
 def noop_handler(request):
     """Catch all handler, checks if the request has a context, if it
-    does, return a 204 else 404.
+      does, return a 204 else 404.
     """
 
+    response = request.response
     if request.context:
-        request.response.status_int = 204
+        response.status_int = 204
+        response.body = None
+        del response.content_type
     else:
-        request.response.status_int = 404
-    return request.response
+        response.status_int = 404
+    return response
 
 
 class IncludeMe(object):
