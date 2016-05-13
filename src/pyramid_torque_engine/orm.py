@@ -214,7 +214,7 @@ class WorkStatusMixin(object):
         bases = (ActivityEventAssociation,)
         mapping = {
             '__mapper_args__': {
-                'polymorphic_identity': cls.singular_class_slug,
+                'polymorphic_identity': cls.singular_class_slug.decode('utf-8'),
             }
         }
         association_cls = type(class_name, bases, mapping)
@@ -244,7 +244,7 @@ class WorkStatusMixin(object):
         bases = (WorkStatusAssociation,)
         mapping = {
             '__mapper_args__': {
-                'polymorphic_identity': cls.singular_class_slug,
+                'polymorphic_identity': cls.singular_class_slug.decode('utf-8'),
             }
         }
         association_cls = type(class_name, bases, mapping)
