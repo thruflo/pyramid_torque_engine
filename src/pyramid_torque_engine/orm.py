@@ -29,6 +29,7 @@ from sqlalchemy.ext import declarative
 from sqlalchemy.ext import hybrid
 
 import pyramid_basemodel as bm
+from pyramid_basemodel import util as bm_util
 from pyramid_simpleauth import model as simpleauth_model
 
 import zope.interface as zi
@@ -55,6 +56,12 @@ class ActivityEvent(bm.Base, bm.BaseMixin):
 
     # Store all events in a single table...
     __tablename__ = 'activity_events'
+    __table_args__ = bm_util.table_args_indexes(
+        'activity_events', [
+            # ('c', 'created'),
+            'c',
+        ]
+    )
 
     # ... whilst allowing sub classes to add fields by specifying a discriminator.
     discriminator = schema.Column(types.Unicode(64))
@@ -144,6 +151,12 @@ class WorkStatus(bm.Base, bm.BaseMixin):
 
     # Store in `work_statuses`.
     __tablename__ = 'work_statuses'
+    __table_args__ = bm_util.table_args_indexes(
+        'work_statuses', [
+            # ('c', 'created'),
+            'c',
+        ]
+    )
 
     # Must have a string status value
     value = schema.Column(
@@ -199,6 +212,12 @@ class WorkStatusMixin(object):
       - use `set_work_status(value, event)` to update the work status
     """
 
+    @classmethod
+    def _work_status_polymorphic_id(cls):
+        if hasattr(cls, 'work_status_polymorphic_id'):
+            return cls.work_status_polymorphic_id.decode('utf-8')
+        return cls.singular_class_slug.decode('utf-8')
+
     @declarative.declared_attr
     def activity_event_association_id(cls):
         return schema.Column(
@@ -214,7 +233,7 @@ class WorkStatusMixin(object):
         bases = (ActivityEventAssociation,)
         mapping = {
             '__mapper_args__': {
-                'polymorphic_identity': cls.singular_class_slug.decode('utf-8'),
+                'polymorphic_identity': cls._work_status_polymorphic_id(),
             }
         }
         association_cls = type(class_name, bases, mapping)
@@ -244,7 +263,7 @@ class WorkStatusMixin(object):
         bases = (WorkStatusAssociation,)
         mapping = {
             '__mapper_args__': {
-                'polymorphic_identity': cls.singular_class_slug.decode('utf-8'),
+                'polymorphic_identity': cls._work_status_polymorphic_id(),
             }
         }
         association_cls = type(class_name, bases, mapping)

@@ -19,7 +19,7 @@ psycopg2==2.6.1
 pydns==2.3.6
 pyga==2.5.0
 pyramid==1.5.7
-pyramid-basemodel==0.3.4
+pyramid-basemodel==0.3.6
 pyramid-hsts==1.2.3
 pyramid-layout==1.0
 pyramid-mako==1.0.2
